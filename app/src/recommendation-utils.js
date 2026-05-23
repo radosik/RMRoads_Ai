@@ -1,0 +1,127 @@
+(function attachRecommendationUtils(globalScope) {
+  function generateRecommendation(exception, shipment) {
+    const riskLevel = exception.riskLevel;
+    const primaryAction = choosePrimaryAction(exception, shipment);
+    const scenarios = buildScenarios(exception, shipment, primaryAction);
+
+    return {
+      exceptionId: exception.id,
+      shipmentId: shipment.id,
+      primaryAction,
+      confidence: getConfidence(exception),
+      summary: buildSummary(exception, primaryAction),
+      assumptions: buildAssumptions(exception, shipment),
+      scenarios,
+    };
+  }
+
+  function choosePrimaryAction(exception, shipment) {
+    if (exception.riskLevel === "critical" && shipment.value >= 100000) return "expedite";
+    if (exception.riskLevel === "critical") return "reroute";
+    if (exception.riskLevel === "high" && shipment.priority !== "standard") return "split";
+    if (exception.riskLevel === "high") return "notify";
+    return "watch";
+  }
+
+  function buildScenarios(exception, shipment, primaryAction) {
+    const base = [
+      {
+        action: "watch",
+        label: "Watch",
+        etaImpact: "No immediate ETA recovery",
+        costBand: "$0",
+        customerRisk: exception.riskLevel === "critical" ? "High" : "Medium",
+        complexity: "Low",
+        rationale: "Keep the shipment under review while disruption confidence is still evolving.",
+      },
+      {
+        action: "notify",
+        label: "Notify Customer",
+        etaImpact: "No physical recovery",
+        costBand: "$0 - $250",
+        customerRisk: "Reduced surprise risk",
+        complexity: "Low",
+        rationale: "Prepare proactive customer messaging before the ETA miss becomes visible externally.",
+      },
+      {
+        action: "reroute",
+        label: "Reroute",
+        etaImpact: "Recover 1-4 days",
+        costBand: estimateCost(shipment.value, 0.04, 2500),
+        customerRisk: "Medium",
+        complexity: "Medium",
+        rationale: "Move the shipment away from the affected lane or carrier where capacity is available.",
+      },
+      {
+        action: "split",
+        label: "Split Shipment",
+        etaImpact: "Recover critical units",
+        costBand: estimateCost(shipment.value, 0.025, 1500),
+        customerRisk: "Medium",
+        complexity: "Medium",
+        rationale: "Prioritize the highest-value or most stockout-sensitive units instead of moving everything.",
+      },
+      {
+        action: "expedite",
+        label: "Expedite",
+        etaImpact: "Recover 2-6 days",
+        costBand: estimateCost(shipment.value, 0.08, 6000),
+        customerRisk: "Low",
+        complexity: "High",
+        rationale: "Use premium capacity when customer or inventory impact justifies the cost.",
+      },
+    ];
+
+    return base
+      .map((scenario) => ({
+        ...scenario,
+        recommended: scenario.action === primaryAction,
+      }))
+      .sort((a, b) => Number(b.recommended) - Number(a.recommended));
+  }
+
+  function buildSummary(exception, primaryAction) {
+    const actionLabel = primaryAction.replace(/\b\w/g, (letter) => letter.toUpperCase());
+    return `${actionLabel} is recommended because ${exception.shipmentId} is ${exception.riskLevel} risk: ${exception.reason}`;
+  }
+
+  function buildAssumptions(exception, shipment) {
+    return [
+      `Risk score is ${exception.riskScore}/100 from active disruption events and shipment priority.`,
+      `Shipment value is ${formatCurrency(shipment.value)} and priority is ${shipment.priority}.`,
+      "Recommendation is decision support only and requires planner approval.",
+    ];
+  }
+
+  function getConfidence(exception) {
+    if (exception.riskLevel === "critical") return "High";
+    if (exception.riskLevel === "high") return "Medium";
+    return "Low";
+  }
+
+  function estimateCost(value, ratio, minimum) {
+    const estimate = Math.max(Math.round(value * ratio), minimum);
+    const low = Math.round(estimate * 0.75);
+    const high = Math.round(estimate * 1.25);
+    return `${formatCurrency(low)} - ${formatCurrency(high)}`;
+  }
+
+  function formatCurrency(value) {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0,
+    }).format(value);
+  }
+
+  const api = {
+    generateRecommendation,
+    choosePrimaryAction,
+  };
+
+  globalScope.RMRoadsRecommendation = api;
+
+  if (typeof module !== "undefined" && module.exports) {
+    module.exports = api;
+  }
+})(typeof window !== "undefined" ? window : globalThis);
