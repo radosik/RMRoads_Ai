@@ -1,6 +1,0 @@
-shipment_id,customer,origin,destination,mode,carrier,planned_ship_date,eta,priority,value,sku_group,destination_location
-RM-1001,Northstar Retail,Shenzhen CN,Los Angeles CA,Ocean,Maersk,2026-05-10,2026-06-03,critical,128000,Electronics,LA DC
-RM-1002,Helio Parts,Hamburg DE,Chicago IL,Ocean+Rail,Hapag-Lloyd,2026-05-11,2026-06-08,high,76000,Industrial Components,Chicago Hub
-RM-1003,Evergreen Home,Savannah GA,Dallas TX,Truck,JB Hunt,2026-05-20,2026-05-25,standard,18500,Furniture,Dallas DC
-RM-1004,Arc Supply,Busan KR,Seattle WA,Ocean,ONE,2026-05-12,2026-06-01,critical,94000,Semiconductors,Seattle DC
-RM-1005,Peak Foods,Veracruz MX,Atlanta GA,Truck,Schneider,2026-05-19,2026-05-24,high,42000,Packaged Foods,Atlanta DC

@@ -1,60 +1,62 @@
-# RMRoads AI
+# RMRoads AI OpenSaaS
 
-RMRoads AI is an MVP prototype for autonomous supply chain disruption response. The current version focuses on validating the core workflow before moving into a full OpenSaaS implementation.
+This repository root is the active RMRoads AI OpenSaaS project.
 
-## Current Prototype
+The app is based on OpenSaaS and Wasp. The current MVP focuses on a planner
+workflow for supply chain disruption response:
 
-The app is a static browser prototype that runs without a build step. It supports:
+- authenticated organization workspace
+- shipment CSV import and validation
+- manual disruption event management
+- deterministic risk scoring
+- exception queue
+- recommendation review and scenario comparison
+- approve, defer, and reject decisions with audit history
+- critical alert settings and alert log
+- basic pilot value metrics
 
-- Shipment CSV import and validation
-- Row-level import error reporting
-- Manual disruption event creation and archiving
-- Deterministic shipment risk scoring
-- Exception queue generation
-- Exception owner assignment
-- Recommendation review with response scenarios
-- Human decision workflow: approve, defer, or reject
-- Pilot value dashboard and decision log
-- Local browser persistence
-- Workspace JSON export/import
-- Decision log CSV export
+## Project Layout
+
+- `app/` - Wasp web app and server code
+- `app/src/rmroads/` - RMRoads AI domain logic, operations, and dashboard UI
+- `app/schema.prisma` - OpenSaaS plus RMRoads persistence models
+- `app/migrations/` - Prisma migrations managed through Wasp
+- `blog/` - OpenSaaS blog/docs site
+- `e2e-tests/` - Playwright end-to-end test workspace
+- `docs/` - local planning docs and manual CSV test files, ignored by git
 
 ## Run Locally
 
-Open `app/index.html` directly in a browser.
-
-For local HTTP testing:
+From this directory:
 
 ```sh
-python3 -m http.server 4173 --directory app
+cd app
+wasp start db
+wasp start
 ```
 
-Then open:
+Open:
 
 ```text
-http://localhost:4173
+http://localhost:3000/rmroads
 ```
 
-## Test
+## Useful Commands
 
 ```sh
-node --check app/src/app.js
-node --check app/src/csv-utils.js
-node --check app/src/risk-utils.js
-node --check app/src/recommendation-utils.js
-node --check app/src/storage-utils.js
-node --check app/src/metrics-utils.js
-node --check app/src/domain-contract.js
-node --check app/src/export-utils.js
-node app/test/csv-utils.test.cjs
-node app/test/risk-utils.test.cjs
-node app/test/recommendation-utils.test.cjs
-node app/test/storage-utils.test.cjs
-node app/test/metrics-utils.test.cjs
-node app/test/domain-contract.test.cjs
-node app/test/export-utils.test.cjs
+cd app
+npm exec tsc -- --noEmit
+wasp db migrate-dev
 ```
 
-## Next Step
+For direct Prisma validation against the default Wasp dev database:
 
-The next major step is moving the validated workflow into OpenSaaS with authentication, organization workspaces, Prisma persistence, server-side CSV import, and database-backed exception/decision workflows.
+```sh
+DATABASE_URL=postgresql://postgresWaspDevUser:postgresWaspDevPass@localhost:5432/OpenSaaS-5799490bc2 npm exec prisma -- validate --schema schema.prisma
+```
+
+## Current Development Notes
+
+Use `app/src/rmroads/README.md` for implementation notes around the migration
+slice. Planning material can stay in `docs/`, but it is intentionally excluded
+from git so the repository remains focused on the product code.
