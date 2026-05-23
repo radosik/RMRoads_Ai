@@ -35,6 +35,7 @@ const decisionCsv = buildDecisionCsv([
     status: "approved",
     scenarioAction: "expedite",
     owner: "Maya Chen",
+    decidedBy: "Maya Chen",
     riskLevel: "critical",
     riskScore: 82,
     estimatedProtectedValue: 8000,
@@ -86,6 +87,8 @@ const snapshot = buildWorkspaceSnapshot({
     },
   },
   exceptionAssignments: { "EX-RM-1": "Maya Chen" },
+  importHistory: [],
+  alertLog: [],
 });
 assert.equal(snapshot.schemaVersion, workspaceSchemaVersion);
 assert.equal(snapshot.shipments.length, 1);
@@ -93,6 +96,8 @@ assert.equal(snapshot.shipments.length, 1);
 const parsed = parseWorkspaceSnapshot(JSON.stringify(snapshot));
 assert.deepEqual(parsed.shipments, snapshot.shipments);
 assert.deepEqual(parsed.exceptionAssignments, snapshot.exceptionAssignments);
+assert.deepEqual(parsed.importHistory, []);
+assert.deepEqual(parsed.alertLog, []);
 
 assert.throws(() => parseWorkspaceSnapshot("{}"), /Unsupported workspace schema version/);
 

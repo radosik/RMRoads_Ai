@@ -45,6 +45,7 @@
           status: decision.status,
           note: decision.note || "",
           owner: exceptionAssignments[exceptionId] || exception?.owner || "",
+          decidedBy: decision.decidedBy || exceptionAssignments[exceptionId] || "Pilot Planner",
           scenarioAction,
           decidedAt: decision.decidedAt || "",
           riskScore: exception?.riskScore || 0,

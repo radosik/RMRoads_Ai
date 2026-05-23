@@ -44,6 +44,8 @@
     validateArray(snapshot.shipments, "shipments", errors);
     validateArray(snapshot.importErrors, "importErrors", errors);
     validateArray(snapshot.disruptionEvents, "disruptionEvents", errors);
+    if ("importHistory" in snapshot) validateArray(snapshot.importHistory, "importHistory", errors);
+    if ("alertLog" in snapshot) validateArray(snapshot.alertLog, "alertLog", errors);
     validateObject(snapshot.exceptionDecisions, "exceptionDecisions", errors);
     validateObject(snapshot.exceptionAssignments, "exceptionAssignments", errors);
 

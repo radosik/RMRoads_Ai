@@ -8,16 +8,23 @@ This is the first development step from the roadmap: **CSV import to shipment da
 - CSV upload from local file.
 - Required header validation.
 - Row-level validation for missing required values and non-numeric shipment value.
+- Duplicate shipment IDs in the same import are rejected and shown as import errors.
+- Import history shows accepted rows, rejected rows, and duplicate counts.
 - Valid shipments render in a dashboard table.
+- Shipment detail view shows lane, impact, risk reasons, and matched disruption events.
 - Summary metrics update after import.
 - Priority and mode filters.
 - Built-in sample data via the "Load Sample Data" button.
 - Manual disruption event creation and archiving.
+- Manual disruption event editing.
 - Deterministic shipment risk scoring.
 - Generated exception queue for medium, high, and critical shipment risk.
+- Exception queue filters by owner, decision status, and risk level.
 - Recommendation review panel with response scenarios.
 - Human decision workflow: approve, defer, or reject with a note.
+- Decision notes are required for deferred and rejected recommendations.
 - Exception owner assignment for planner accountability.
+- Critical alert log previews the email alert behavior planned for OpenSaaS.
 - Browser localStorage persistence for shipments, disruption events, and decisions.
 - Workspace reset button for manual testing.
 - Pilot value dashboard with reviewed/approved/deferred/rejected counts.

@@ -17,6 +17,7 @@
       { key: "status", label: "decision_status" },
       { key: "scenarioAction", label: "scenario_action" },
       { key: "owner", label: "owner" },
+      { key: "decidedBy", label: "decided_by" },
       { key: "riskLevel", label: "risk_level" },
       { key: "riskScore", label: "risk_score" },
       { key: "estimatedProtectedValue", label: "estimated_protected_value" },
@@ -34,8 +35,11 @@
       disruptionEvents: state.disruptionEvents || [],
       exceptionDecisions: state.exceptionDecisions || {},
       exceptionAssignments: state.exceptionAssignments || {},
+      importHistory: state.importHistory || [],
+      alertLog: state.alertLog || [],
       selectedExceptionId: state.selectedExceptionId || "",
       selectedScenarioAction: state.selectedScenarioAction || "",
+      selectedShipmentId: state.selectedShipmentId || "",
     };
   }
 
@@ -62,8 +66,11 @@
         parsed.exceptionDecisions && typeof parsed.exceptionDecisions === "object" ? parsed.exceptionDecisions : {},
       exceptionAssignments:
         parsed.exceptionAssignments && typeof parsed.exceptionAssignments === "object" ? parsed.exceptionAssignments : {},
+      importHistory: Array.isArray(parsed.importHistory) ? parsed.importHistory : [],
+      alertLog: Array.isArray(parsed.alertLog) ? parsed.alertLog : [],
       selectedExceptionId: typeof parsed.selectedExceptionId === "string" ? parsed.selectedExceptionId : "",
       selectedScenarioAction: typeof parsed.selectedScenarioAction === "string" ? parsed.selectedScenarioAction : "",
+      selectedShipmentId: typeof parsed.selectedShipmentId === "string" ? parsed.selectedShipmentId : "",
     };
   }
 

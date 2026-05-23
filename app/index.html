@@ -22,6 +22,7 @@
           <a class="nav-item" href="#disruptions">Disruptions</a>
           <a class="nav-item" href="#dashboard">Dashboard</a>
           <a class="nav-item" href="#exceptions">Exceptions</a>
+          <a class="nav-item" href="#alerts">Alerts</a>
           <a class="nav-item" href="#pilot-value">Pilot Value</a>
         </nav>
       </aside>
@@ -76,6 +77,7 @@
             <p>
               Use the MVP shipment template fields: shipment_id, customer, origin, destination, mode,
               carrier, planned_ship_date, eta, priority, value, sku_group, destination_location.
+              Duplicate shipment IDs in the same file are rejected so the import result is auditable.
             </p>
           </div>
           <label class="upload-zone" for="csvInput">
@@ -83,6 +85,29 @@
             <span>Choose CSV file</span>
             <small>Rows with missing required values will be listed below instead of imported.</small>
           </label>
+        </section>
+
+        <section class="panel hidden" id="importHistoryPanel">
+          <div class="panel-heading">
+            <div>
+              <h2>Import History</h2>
+              <p>Review recent CSV imports, accepted rows, rejected rows, and duplicate shipment IDs.</p>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Imported</th>
+                  <th>Source</th>
+                  <th>Accepted</th>
+                  <th>Rejected</th>
+                  <th>Duplicates</th>
+                </tr>
+              </thead>
+              <tbody id="importHistoryTable"></tbody>
+            </table>
+          </div>
         </section>
 
         <section class="panel" id="disruptions">
@@ -128,6 +153,7 @@
               <input id="eventSource" type="text" value="Manual pilot signal" required />
             </label>
             <button class="primary-button" type="submit">Add Event</button>
+            <button class="ghost-button hidden" id="cancelEventEditButton" type="button">Cancel Edit</button>
           </form>
 
           <div class="table-wrap">
@@ -141,7 +167,7 @@
                   <th>Carrier</th>
                   <th>Confidence</th>
                   <th>Status</th>
-                  <th>Action</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody id="eventsTable"></tbody>
@@ -206,15 +232,26 @@
                   <th>Priority</th>
                   <th>Risk</th>
                   <th>Value</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody id="shipmentsTable">
                 <tr>
-                  <td colspan="9" class="empty-state">Upload a CSV to create the first shipment dashboard.</td>
+                  <td colspan="10" class="empty-state">Upload a CSV to create the first shipment dashboard.</td>
                 </tr>
               </tbody>
             </table>
           </div>
+        </section>
+
+        <section class="panel hidden" id="shipmentDetailPanel" aria-live="polite">
+          <div class="panel-heading">
+            <div>
+              <h2>Shipment Detail</h2>
+              <p id="shipmentDetailStatus">Select a shipment to inspect risk reasons and matched events.</p>
+            </div>
+          </div>
+          <div class="detail-grid" id="shipmentDetail"></div>
         </section>
 
         <section class="panel" id="exceptions">
@@ -222,6 +259,38 @@
             <div>
               <h2>Exception Queue</h2>
               <p id="exceptionStatus">Import shipments and add disruption events to generate exceptions.</p>
+            </div>
+            <div class="filters" aria-label="Exception filters">
+              <label>
+                Owner
+                <select id="exceptionOwnerFilter">
+                  <option value="all">All</option>
+                  <option value="unassigned">Unassigned</option>
+                  <option value="Maya Chen">Maya Chen</option>
+                  <option value="Leo Martins">Leo Martins</option>
+                  <option value="Nina Patel">Nina Patel</option>
+                  <option value="Ops Review">Ops Review</option>
+                </select>
+              </label>
+              <label>
+                Status
+                <select id="exceptionStatusFilter">
+                  <option value="all">All</option>
+                  <option value="new">New</option>
+                  <option value="approved">Approved</option>
+                  <option value="deferred">Deferred</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </label>
+              <label>
+                Risk
+                <select id="exceptionRiskFilter">
+                  <option value="all">All</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="critical">Critical</option>
+                </select>
+              </label>
             </div>
           </div>
           <div class="table-wrap">
@@ -268,12 +337,41 @@
                   placeholder="Add the operational reason for the decision."
                 ></textarea>
               </label>
+              <p class="form-error hidden" id="decisionError">Decision note is required for deferred or rejected recommendations.</p>
               <div class="decision-actions">
                 <button class="primary-button" type="submit" data-decision="approved">Approve</button>
                 <button class="ghost-button" type="submit" data-decision="deferred">Defer</button>
                 <button class="danger-button" type="submit" data-decision="rejected">Reject</button>
               </div>
             </form>
+          </div>
+        </section>
+
+        <section class="panel" id="alerts">
+          <div class="panel-heading">
+            <div>
+              <h2>Critical Alert Log</h2>
+              <p>Prototype email-alert preview for critical exceptions. OpenSaaS will replace this with real email delivery.</p>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Created</th>
+                  <th>Exception</th>
+                  <th>Shipment</th>
+                  <th>Customer</th>
+                  <th>Risk</th>
+                  <th>Message</th>
+                </tr>
+              </thead>
+              <tbody id="alertLogTable">
+                <tr>
+                  <td colspan="6" class="empty-state">No critical alerts generated yet.</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </section>
 
