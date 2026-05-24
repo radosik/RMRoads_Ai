@@ -4,10 +4,8 @@ import { routes } from "wasp/client/router";
 import {
   AlertTriangle,
   CheckCircle2,
-  ClipboardList,
   Database,
   FileText,
-  History,
   Plus,
   Settings,
   Truck,
@@ -18,31 +16,21 @@ import {
   useRef,
   useState,
   type ChangeEvent,
-  type FormEvent,
   type ReactNode,
 } from "react";
 import {
-  assignRMRoadsExceptionOwner,
   decideRMRoadsException,
   getRMRoadsDashboard,
   importRMRoadsShipmentCsv,
   seedRMRoadsDemoData,
-  updateRMRoadsAlertSettings,
   useQuery,
 } from "wasp/client/operations";
 import { Button } from "../client/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../client/components/ui/card";
 import { Input } from "../client/components/ui/input";
 import { Label } from "../client/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../client/components/ui/select";
 import { Textarea } from "../client/components/ui/textarea";
 import { requiredShipmentCsvFields, type ImportError } from "./domain/csv";
+import { buildPilotSummaryRows } from "./domain/pilotSummary";
 import { generateRecommendation } from "./domain/recommendations";
 import type {
   DisruptionSeverity,
@@ -96,7 +84,6 @@ const shipmentCsvTemplateRows = [
 export default function RMRoadsDashboardPage() {
   const [importMessage, setImportMessage] = useState("");
   const [importErrors, setImportErrors] = useState<ImportError[]>([]);
-  const [alertSettingsMessage, setAlertSettingsMessage] = useState("");
   const [isImporting, setIsImporting] = useState(false);
   const [ownerFilter, setOwnerFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -174,6 +161,33 @@ export default function RMRoadsDashboardPage() {
     );
   };
 
+  const handleDownloadPilotSummary = () => {
+    if (!dashboard) return;
+
+    downloadCsv(
+      `rmroads-pilot-summary-${new Date().toISOString().slice(0, 10)}.csv`,
+      buildPilotSummaryRows({
+        organizationName: dashboard.organization?.name || "",
+        shipmentCount: dashboard.shipmentCount,
+        eventCount: dashboard.eventCount,
+        exceptionCount: dashboard.exceptionCount,
+        criticalExceptionCount: dashboard.criticalExceptionCount,
+        totalValue: dashboard.totalValue,
+        reviewedCount: dashboard.reviewedCount,
+        approvedCount: dashboard.approvedCount,
+        deferredCount: dashboard.deferredCount,
+        rejectedCount: dashboard.rejectedCount,
+        averageRiskScore: dashboard.averageRiskScore,
+        estimatedProtectedValue: dashboard.estimatedProtectedValue,
+        shipments: dashboard.shipments,
+        exceptions: dashboard.exceptions,
+        decisions: dashboard.decisions,
+        alerts: dashboard.alerts,
+        importHistory: dashboard.importHistory,
+      }),
+    );
+  };
+
   const handleDecision = async (status: "approved" | "deferred" | "rejected") => {
     if (!selectedException) return;
     if ((status === "deferred" || status === "rejected") && !decisionNote.trim()) {
@@ -190,19 +204,6 @@ export default function RMRoadsDashboardPage() {
     setDecisionError("");
     setDecisionNote("");
     await refreshDashboard();
-  };
-
-  const handleAlertSettingsSubmit = async (settings: {
-    alertEmailsEnabled: boolean;
-    alertRecipients: string;
-  }) => {
-    try {
-      await updateRMRoadsAlertSettings(settings);
-      setAlertSettingsMessage("Alert settings saved.");
-      await refreshDashboard();
-    } catch (error: any) {
-      setAlertSettingsMessage(error.message || "Could not save alert settings.");
-    }
   };
 
   return (
@@ -223,6 +224,7 @@ export default function RMRoadsDashboardPage() {
             dashboard={dashboard}
             dashboardQuery={dashboardQuery}
             exceptions={exceptions}
+            handleDownloadPilotSummary={handleDownloadPilotSummary}
             handleSeedDemoData={handleSeedDemoData}
           />
 
@@ -280,16 +282,6 @@ export default function RMRoadsDashboardPage() {
               setSelectedScenarioAction={setSelectedScenarioAction}
             />
           </div>
-
-          <div className="hidden gap-4 border-t border-border/30 bg-background/80 p-4">
-            <AlertSettingsCard
-              message={alertSettingsMessage}
-              onSubmit={handleAlertSettingsSubmit}
-              organization={dashboard?.organization}
-            />
-            <ImportHistoryCard importHistory={dashboard?.importHistory || []} />
-            <AlertLogCard alerts={dashboard?.alerts || []} />
-          </div>
         </section>
       </div>
     </main>
@@ -340,15 +332,10 @@ function WorkbenchSideRail({
 
       <nav className="flex-1 overflow-y-auto py-2 rmr-scrollbar">
         <WorkbenchRailItem active icon={<AlertTriangle className="size-5" />} label="Disruptions" />
-        <WorkbenchRailItem icon={<RouteIcon />} label="Route Opti" />
-        <WorkbenchRailItem icon={<Database className="size-5" />} label="Asset Sync" />
-        <WorkbenchRailItem icon={<ClipboardList className="size-5" />} label="Scenario Lab" />
-        <WorkbenchRailItem icon={<History className="size-5" />} label="Audit Log" />
       </nav>
 
       <div className="border-t border-border/30 py-2">
         <WorkbenchRailItem href={routes.RMRoadsSettingsRoute.to} icon={<Settings className="size-5" />} label="Settings" />
-        <WorkbenchRailItem icon={<FileText className="size-5" />} label="Docs" />
       </div>
     </aside>
   );
@@ -375,22 +362,22 @@ function WorkbenchRailItem({
     </>
   );
 
-  return href ? (
+  if (!href) {
+    return (
+      <div className={className}>
+        {content}
+      </div>
+    );
+  }
+
+  return (
     <ReactRouterLink className={className} to={href}>
       {content}
     </ReactRouterLink>
-  ) : (
-    <button className={className} type="button">
-      {content}
-    </button>
   );
 }
 
-function RouteIcon() {
-  return <Truck className="size-5" />;
-}
-
-function WorkbenchContextBar({ dashboard, dashboardQuery, exceptions, handleSeedDemoData }: any) {
+function WorkbenchContextBar({ dashboard, dashboardQuery, exceptions, handleDownloadPilotSummary, handleSeedDemoData }: any) {
   const criticalCount = exceptions.filter((exception: any) => exception.riskLevel === "critical").length;
   const actionableCount = exceptions.filter((exception: any) => exception.status === "new" || exception.status === "deferred").length;
 
@@ -420,6 +407,10 @@ function WorkbenchContextBar({ dashboard, dashboardQuery, exceptions, handleSeed
         </div>
         <Button className="rmr-label h-8 rounded" disabled={dashboardQuery.isFetching} onClick={handleSeedDemoData} variant="outline">
           Refresh
+        </Button>
+        <Button className="rmr-label h-8 rounded" disabled={!dashboard?.shipmentCount} onClick={handleDownloadPilotSummary} variant="outline">
+          <FileText className="mr-2 size-4" />
+          Summary
         </Button>
       </div>
     </div>
@@ -588,9 +579,6 @@ function WorkbenchDetailPanel({
                 {activeShipment.customer} · {activeShipment.mode} · Carrier: {activeShipment.carrier}
               </p>
             </div>
-            <Button className="size-8 rounded p-0" type="button" variant="outline">
-              <FileText className="size-4" />
-            </Button>
           </div>
 
           <div className="rmr-stream min-h-[5.75rem] overflow-hidden rounded border border-border/40 bg-card-subtle/70 p-[var(--rmr-panel-pad)]" data-rmr-detail-animate>
@@ -679,67 +667,6 @@ function RouteStop({ alignRight = false, code, label }: { alignRight?: boolean; 
   );
 }
 
-function AlertSettingsCard({ message, onSubmit, organization }: any) {
-  const [enabled, setEnabled] = useState(Boolean(organization?.alertEmailsEnabled));
-  const [recipients, setRecipients] = useState((organization?.alertRecipients || []).join(", "));
-
-  useEffect(() => {
-    setEnabled(Boolean(organization?.alertEmailsEnabled));
-    setRecipients((organization?.alertRecipients || []).join(", "));
-  }, [organization?.alertEmailsEnabled, organization?.alertRecipients]);
-
-  const handleSubmit = (event: FormEvent) => {
-    event.preventDefault();
-    onSubmit({
-      alertEmailsEnabled: enabled,
-      alertRecipients: recipients,
-    });
-  };
-
-  return (
-    <Card className="min-w-0 overflow-hidden">
-      <CardHeader><CardTitle>Critical Alert Settings</CardTitle></CardHeader>
-      <CardContent className="min-w-0">
-        <form className="grid gap-4" onSubmit={handleSubmit}>
-          <label className="flex items-start gap-3 rounded-md border border-border bg-card-subtle p-3 text-card-subtle-foreground">
-            <input
-              checked={enabled}
-              className="mt-1 h-4 w-4 rounded border-input"
-              onChange={(event) => setEnabled(event.currentTarget.checked)}
-              type="checkbox"
-            />
-            <span className="min-w-0">
-              <span className="block text-sm font-semibold">Email critical exceptions</span>
-              <span className="mt-1 block text-sm text-muted-foreground">
-                Send once when a new unchanged critical exception is created.
-              </span>
-            </span>
-          </label>
-          <div className="grid gap-2">
-            <Label>Recipients</Label>
-            <Textarea
-              className="min-h-24"
-              onChange={(event) => setRecipients(event.currentTarget.value)}
-              placeholder="planner@example.com, ops@example.com"
-              value={recipients}
-            />
-          </div>
-          {message ? <p className="break-words text-sm font-semibold text-emerald-700 dark:text-emerald-300">{message}</p> : null}
-          <Button type="submit">Save Alert Settings</Button>
-        </form>
-      </CardContent>
-    </Card>
-  );
-}
-
-function ImportHistoryCard({ importHistory }: any) {
-  return <SimpleTableCard title="Import History" empty="No imports yet." headers={["Imported", "Source", "Accepted", "Rejected", "Duplicates"]} rows={importHistory.map((entry: any) => [formatDateTime(entry.importedAt), entry.sourceName, entry.acceptedCount, entry.rejectedCount, entry.duplicateCount])} />;
-}
-
-function AlertLogCard({ alerts }: any) {
-  return <SimpleTableCard title="Critical Alert Log" empty="No critical alerts generated yet." headers={["Created", "Delivery", "Shipment", "Risk", "Message"]} rows={alerts.map((alert: any) => [formatDateTime(alert.createdAt), alert.sentAt ? `${alert.deliveryStatus} ${formatDateTime(alert.sentAt)}` : alert.deliveryStatus || "Pending", alert.shipmentId, `${alert.riskLevel} ${alert.riskScore}/100`, alert.message])} />;
-}
-
 function ImportErrorsTable({ errors }: { errors: ImportError[] }) {
   return (
     <div className="rounded-md border border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100">
@@ -780,14 +707,6 @@ function DetailBlock({ danger = false, detail, label, value }: { danger?: boolea
   );
 }
 
-function ListBlock({ items, label }: { items: string[]; label: string }) {
-  return <div className="min-w-0 rounded-md border border-border bg-card-subtle p-4 text-card-subtle-foreground"><div className="text-muted-foreground text-xs font-semibold uppercase">{label}</div><ul className="text-muted-foreground mt-2 list-disc space-y-1 pl-4 text-sm">{items.map((item) => <li className="break-words" key={item}>{item}</li>)}</ul></div>;
-}
-
-function OwnerSelect({ exception, refreshDashboard }: any) {
-  return <Select value={exception.owner || "unassigned"} onValueChange={async (ownerName) => { await assignRMRoadsExceptionOwner({ exceptionId: exception.id, ownerName: ownerName === "unassigned" ? "" : ownerName }); await refreshDashboard(); }}><SelectTrigger className="h-auto min-h-9 w-full min-w-0 px-2 text-xs sm:text-sm"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="unassigned">Unassigned</SelectItem>{owners.map((owner) => <SelectItem key={owner} value={owner}>{owner}</SelectItem>)}</SelectContent></Select>;
-}
-
 function NativeSelect({ label, onChange, options, value }: { label: string; onChange: (value: any) => void; options: string[]; value: string }) {
   return <label className="grid min-w-0 gap-1 text-xs font-semibold text-muted-foreground">{label}<select className="h-9 min-w-0 rounded-md border border-input bg-background px-3 text-sm text-foreground" value={value} onChange={(event) => onChange(event.currentTarget.value)}>{options.map((option) => <option key={option} value={option}>{formatAction(option)}</option>)}</select></label>;
 }
@@ -797,15 +716,7 @@ function RiskBadge({ level, score }: { level: RiskLevel | DisruptionSeverity; sc
   return <span className={`inline-flex max-w-full rounded-full px-2 py-1 text-xs font-semibold leading-tight [overflow-wrap:anywhere] ${className}`}>{level}{typeof score === "number" ? ` ${score}/100` : ""}</span>;
 }
 
-function EmptyRow({ colSpan, message }: { colSpan: number; message: string }) {
-  return <tr><td className="py-8 text-center text-sm text-muted-foreground" colSpan={colSpan}>{message}</td></tr>;
-}
-
-function SimpleTableCard({ empty, headers, rows, title }: { empty: string; headers: string[]; rows: Array<Array<string | number>>; title: string }) {
-  return <Card className="min-w-0 overflow-hidden"><CardHeader><CardTitle>{title}</CardTitle></CardHeader><CardContent className="min-w-0"><div className="max-w-full overflow-hidden rounded-md border border-border"><table className="w-full table-fixed text-left text-xs sm:text-sm"><thead className="text-muted-foreground border-b text-xs uppercase"><tr>{headers.map((header, index) => <th className={index === 0 ? "py-3 pl-2 pr-2 sm:pl-3" : "py-3 pr-2"} key={header}>{header}</th>)}</tr></thead><tbody>{rows.map((row, index) => <tr className="border-b last:border-b-0" key={`${title}-${index}`}>{row.map((cell, cellIndex) => <td className={cellIndex === 0 ? "py-4 pl-2 pr-2 align-top [overflow-wrap:anywhere] sm:pl-3" : "py-4 pr-2 align-top [overflow-wrap:anywhere]"} key={`${title}-${index}-${cellIndex}`}>{cell}</td>)}</tr>)}{!rows.length ? <EmptyRow colSpan={headers.length} message={empty} /> : null}</tbody></table></div></CardContent></Card>;
-}
-
-function downloadCsv(fileName: string, rows: Array<readonly string[]>) {
+function downloadCsv(fileName: string, rows: Array<readonly (string | number)[]>) {
   const csv = rows.map((row) => row.map(escapeCsvCell).join(",")).join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
@@ -817,17 +728,10 @@ function downloadCsv(fileName: string, rows: Array<readonly string[]>) {
   URL.revokeObjectURL(url);
 }
 
-function escapeCsvCell(value: string) {
-  return `"${value.replaceAll('"', '""')}"`;
+function escapeCsvCell(value: string | number) {
+  return `"${String(value).replaceAll('"', '""')}"`;
 }
 
 function formatAction(value: string) {
   return value.split("-").join(" ").replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
-function formatDateTime(value: string) {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(date);
 }

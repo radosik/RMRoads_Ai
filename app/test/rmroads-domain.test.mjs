@@ -80,3 +80,239 @@ test("scenario action selection keeps critical high-value shipments on expedite"
 
   assert.equal(domain.choosePrimaryAction(exception, shipment), "expedite");
 });
+
+test("workspace role helpers separate admin, planner, and viewer permissions", () => {
+  assert.equal(domain.canManageWorkspace("admin"), true);
+  assert.equal(domain.canManageWorkspace("planner"), false);
+  assert.equal(domain.canManageWorkspace("viewer"), false);
+  assert.equal(domain.canMutateWorkspaceData("admin"), true);
+  assert.equal(domain.canMutateWorkspaceData("planner"), true);
+  assert.equal(domain.canMutateWorkspaceData("viewer"), false);
+});
+
+test("invitation acceptance blocks cross-company account attachment", () => {
+  assert.equal(
+    domain.evaluateInvitationAcceptance({
+      existingOrganizationId: null,
+      invitationOrganizationId: "company-b",
+    }),
+    "can_accept",
+  );
+  assert.equal(
+    domain.evaluateInvitationAcceptance({
+      existingOrganizationId: "company-b",
+      invitationOrganizationId: "company-b",
+    }),
+    "already_member_of_invited_workspace",
+  );
+  assert.equal(
+    domain.evaluateInvitationAcceptance({
+      existingOrganizationId: "company-a",
+      invitationOrganizationId: "company-b",
+    }),
+    "blocked_by_existing_workspace",
+  );
+});
+
+test("tenant readiness issues expose blockers before pilot data import", () => {
+  assert.deepEqual(
+    domain.buildTenantReadinessIssues({
+      alertEmailsEnabled: true,
+      alertRecipientCount: 0,
+      decisionCount: 0,
+      importCount: 0,
+      pendingInvitationCount: 1,
+      securityReviewCompleted: false,
+      shipmentCount: 0,
+    }),
+    [
+      "Security review pending",
+      "No shipment import validated",
+      "No planner decision recorded",
+      "Alerts enabled without recipients",
+      "Pending team invitations",
+    ],
+  );
+
+  assert.deepEqual(
+    domain.buildTenantReadinessIssues({
+      alertEmailsEnabled: true,
+      alertRecipientCount: 2,
+      decisionCount: 3,
+      importCount: 1,
+      pendingInvitationCount: 0,
+      securityReviewCompleted: true,
+      shipmentCount: 10,
+    }),
+    [],
+  );
+});
+
+test("pilot lead notification recipients normalize and drop invalid emails", () => {
+  assert.deepEqual(
+    domain.parseNotificationRecipients("Ops@RMRoads.ai, bad; sales@rmroads.ai\nops@rmroads.ai"),
+    ["ops@rmroads.ai", "sales@rmroads.ai"],
+  );
+});
+
+test("pilot lead notification email escapes submitted lead content", () => {
+  const email = domain.buildPilotLeadEmail({
+    name: "Ava <Planner>",
+    workEmail: "ava@example.com",
+    company: "Acme & Sons",
+    role: "Logistics Lead",
+    shipmentVolume: "500/month",
+    currentTools: "Sheets",
+    disruptionPain: "<script>alert(1)</script>",
+    pilotGoal: "Reduce customer escalations",
+    adminUrl: "https://app.example.com/admin/pilot-leads",
+  });
+
+  assert.match(email.subject, /Acme & Sons/);
+  assert.match(email.text, /Ava <Planner>/);
+  assert.match(email.html, /Ava &lt;Planner&gt;/);
+  assert.doesNotMatch(email.html, /<script>/);
+});
+
+test("pilot summary rows include weekly review metrics and top risks", () => {
+  const rows = domain.buildPilotSummaryRows(
+    {
+      organizationName: "Northwind Supply",
+      shipmentCount: 12,
+      eventCount: 3,
+      exceptionCount: 2,
+      criticalExceptionCount: 1,
+      totalValue: 450000,
+      reviewedCount: 4,
+      approvedCount: 2,
+      deferredCount: 1,
+      rejectedCount: 1,
+      averageRiskScore: 82,
+      estimatedProtectedValue: 18000,
+      shipments: [],
+      exceptions: [
+        {
+          id: "EX-1",
+          shipmentId: "S-1",
+          customer: "Atlas",
+          lane: "Shanghai CN -> Long Beach CA",
+          eta: "2026-06-08",
+          priority: "critical",
+          value: 125000,
+          riskScore: 95,
+          riskLevel: "critical",
+          reason: "Port congestion",
+          status: "new",
+        },
+      ],
+      decisions: [
+        {
+          id: "D-1",
+          exceptionId: "EX-1",
+          shipmentId: "S-1",
+          customer: "Atlas",
+          lane: "Shanghai CN -> Long Beach CA",
+          status: "approved",
+          scenarioAction: "expedite",
+          owner: "Maya",
+          decidedBy: "planner@example.com",
+          decidedAt: "2026-05-24T12:00:00.000Z",
+          riskLevel: "critical",
+          riskScore: 95,
+          estimatedProtectedValue: 10000,
+          note: "Protect priority customer",
+        },
+      ],
+      alerts: [
+        {
+          id: "A-1",
+          createdAt: "2026-05-24T12:00:00.000Z",
+          sentAt: "",
+          deliveryStatus: "Failed",
+          exceptionId: "EX-1",
+          shipmentId: "S-1",
+          customer: "Atlas",
+          riskLevel: "critical",
+          riskScore: 95,
+          message: "Critical shipment risk",
+        },
+      ],
+      importHistory: [
+        {
+          id: "I-1",
+          importedAt: "2026-05-24T12:00:00.000Z",
+          sourceName: "pilot.csv",
+          acceptedCount: 12,
+          rejectedCount: 0,
+          duplicateCount: 0,
+        },
+      ],
+    },
+    new Date("2026-05-25T08:00:00.000Z"),
+  );
+
+  assert.deepEqual(rows[0], ["Section", "Metric", "Value"]);
+  assert.ok(rows.some((row) => row[1] === "Organization" && row[2] === "Northwind Supply"));
+  assert.ok(rows.some((row) => row[1] === "Top risk shipments" && String(row[2]).includes("S-1 Atlas 95/100")));
+  assert.ok(rows.some((row) => row[1] === "Critical alert failures" && row[2] === 1));
+});
+
+test("weekly pilot summary email formats metrics and escapes top risks", () => {
+  const email = domain.buildPilotSummaryEmail({
+    organizationName: "Northwind <Supply>",
+    shipmentCount: 4,
+    eventCount: 2,
+    exceptionCount: 1,
+    criticalExceptionCount: 1,
+    totalValue: 200000,
+    reviewedCount: 1,
+    approvedCount: 1,
+    deferredCount: 0,
+    rejectedCount: 0,
+    averageRiskScore: 91,
+    estimatedProtectedValue: 10000,
+    shipments: [],
+    exceptions: [
+      {
+        id: "EX-1",
+        shipmentId: "S-1",
+        customer: "Acme <Retail>",
+        lane: "A -> B",
+        eta: "2026-06-01",
+        priority: "critical",
+        value: 200000,
+        riskScore: 91,
+        riskLevel: "critical",
+        reason: "Port <delay>",
+        status: "new",
+      },
+    ],
+    decisions: [],
+    alerts: [],
+    importHistory: [],
+  }, new Date("2026-05-25T09:00:00.000Z"));
+
+  assert.match(email.subject, /Northwind <Supply>/);
+  assert.match(email.text, /Shipments monitored: 4/);
+  assert.match(email.html, /Northwind &lt;Supply&gt;/);
+  assert.match(email.html, /Acme &lt;Retail&gt;/);
+  assert.doesNotMatch(email.html, /Port <delay>/);
+});
+
+test("weekly summary send guard prevents duplicate sends in the same UTC week", () => {
+  assert.equal(domain.shouldSendWeeklySummary(null, new Date("2026-05-25T09:00:00.000Z")), true);
+  assert.equal(
+    domain.shouldSendWeeklySummary(
+      new Date("2026-05-25T08:00:00.000Z"),
+      new Date("2026-05-25T09:00:00.000Z"),
+    ),
+    false,
+  );
+  assert.equal(
+    domain.shouldSendWeeklySummary(
+      new Date("2026-05-24T09:00:00.000Z"),
+      new Date("2026-05-25T09:00:00.000Z"),
+    ),
+    true,
+  );
+});

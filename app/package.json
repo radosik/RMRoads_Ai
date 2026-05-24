@@ -2,6 +2,7 @@
   "name": "opensaas",
   "type": "module",
   "scripts": {
+    "seed:test-tenant": "node scripts/create-test-tenant-user.mjs",
     "test": "node --test test/*.test.mjs"
   },
   "workspaces": [

@@ -1,4 +1,5 @@
 import { HttpError } from "wasp/server";
+import { emailSender } from "wasp/server/email";
 import type {
   GetRMRoadsPilotLeads,
   SubmitRMRoadsPilotLead,
@@ -6,6 +7,10 @@ import type {
 } from "wasp/server/operations";
 import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
+import {
+  buildPilotLeadEmail,
+  parseNotificationRecipients,
+} from "./domain/leadNotifications";
 
 const submitPilotLeadSchema = z.object({
   name: z.string().trim().min(2).max(120),
@@ -67,11 +72,44 @@ export const submitRMRoadsPilotLead: SubmitRMRoadsPilotLead<
     },
   });
 
+  await sendPilotLeadNotification({
+    ...lead,
+    workEmail: lead.workEmail.toLowerCase(),
+  });
+
   return {
     id: createdLead.id,
     message: "Pilot request received. We will follow up with next steps.",
   };
 };
+
+async function sendPilotLeadNotification(lead: z.infer<typeof submitPilotLeadSchema>) {
+  const recipients = parseNotificationRecipients(process.env.RMROADS_LEAD_NOTIFY_EMAILS);
+  if (!recipients.length) return;
+
+  const adminUrl = buildAdminPilotLeadUrl();
+  const email = buildPilotLeadEmail({ ...lead, adminUrl });
+
+  try {
+    await Promise.all(
+      recipients.map((recipient) =>
+        emailSender.send({
+          to: recipient,
+          subject: email.subject,
+          text: email.text,
+          html: email.html,
+        }),
+      ),
+    );
+  } catch (error) {
+    console.error("Failed to send RMRoads pilot lead notification email", error);
+  }
+}
+
+function buildAdminPilotLeadUrl() {
+  const appUrl = process.env.RMROADS_APP_URL || process.env.WASP_WEB_CLIENT_URL || "http://localhost:3000";
+  return `${appUrl.replace(/\/$/, "")}/admin/pilot-leads`;
+}
 
 export const getRMRoadsPilotLeads: GetRMRoadsPilotLeads<
   void,

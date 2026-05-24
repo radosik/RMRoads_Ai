@@ -83,13 +83,23 @@ function AdminTenantHealth({ user }: { user: AuthUser }) {
                         <td className="py-4 pr-2 align-top">
                           <span
                             className={
-                              tenant.securityReviewCompleted
+                              tenant.readinessStatus === "ready"
                                 ? "inline-flex rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"
                                 : "inline-flex rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800 dark:bg-amber-950 dark:text-amber-200"
                             }
                           >
-                            {tenant.securityReviewCompleted ? "Security reviewed" : "Review pending"}
+                            {tenant.readinessStatus === "ready" ? "Pilot ready" : "Needs review"}
                           </span>
+                          {tenant.readinessIssues.length ? (
+                            <ul className="mt-2 grid gap-1 text-xs text-muted-foreground">
+                              {tenant.readinessIssues.slice(0, 3).map((issue) => (
+                                <li key={issue}>{issue}</li>
+                              ))}
+                              {tenant.readinessIssues.length > 3 ? <li>+{tenant.readinessIssues.length - 3} more</li> : null}
+                            </ul>
+                          ) : (
+                            <span className="mt-2 block text-xs text-muted-foreground">Ready for controlled pilot data.</span>
+                          )}
                         </td>
                       </tr>
                     ))}

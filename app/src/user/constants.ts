@@ -1,4 +1,4 @@
-import { LayoutDashboard, Settings, Shield } from "lucide-react";
+import { Inbox, LayoutDashboard, Settings, Shield } from "lucide-react";
 import { routes } from "wasp/client/router";
 
 export const userMenuItems = [
@@ -20,6 +20,13 @@ export const userMenuItems = [
     name: "Workspace Settings",
     to: routes.RMRoadsSettingsRoute.to,
     icon: Settings,
+    isAuthRequired: true,
+    isAdminOnly: false,
+  },
+  {
+    name: "Workspace Invitations",
+    to: routes.RMRoadsInvitationsRoute.to,
+    icon: Inbox,
     isAuthRequired: true,
     isAdminOnly: false,
   },

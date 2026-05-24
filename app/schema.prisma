@@ -41,6 +41,10 @@ model Organization {
   slug                      String          @unique
   alertEmailsEnabled        Boolean         @default(false)
   alertRecipients           String          @default("")
+  weeklySummaryEmailsEnabled Boolean        @default(false)
+  weeklySummaryRecipients   String          @default("")
+  weeklySummaryLastSentAt   DateTime?
+  weeklySummaryEmailStatus  String          @default("pending")
   pilotMode                 String          @default("demo")
   pilotSuccessMetric        String          @default("Time-to-decision and protected shipment value")
   pilotTargetDecisionHours  Int             @default(4)
@@ -84,6 +88,9 @@ model WorkspaceInvitation {
   email                     String
   role                      String          @default("planner")
   status                    String          @default("pending")
+  inviteEmailSentAt         DateTime?
+  inviteEmailStatus         String          @default("pending")
+  inviteEmailProviderId     String?
 
   sentBy                    User            @relation("WorkspaceInvitationSentBy", fields: [sentById], references: [id])
   sentById                  String

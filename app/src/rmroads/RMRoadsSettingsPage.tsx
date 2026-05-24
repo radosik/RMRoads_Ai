@@ -4,6 +4,7 @@ import {
   cancelRMRoadsWorkspaceInvitation,
   createRMRoadsWorkspaceInvitation,
   getRMRoadsWorkspaceSettings,
+  resendRMRoadsWorkspaceInvitation,
   updateRMRoadsWorkspaceSettings,
   useQuery,
 } from "wasp/client/operations";
@@ -27,6 +28,8 @@ const defaultForm = {
   name: "",
   alertEmailsEnabled: false,
   alertRecipients: "",
+  weeklySummaryEmailsEnabled: false,
+  weeklySummaryRecipients: "",
   pilotMode: "demo" as PilotMode,
   pilotSuccessMetric: "Time-to-decision and protected shipment value",
   pilotTargetDecisionHours: 4,
@@ -43,6 +46,7 @@ export default function RMRoadsSettingsPage() {
   const [inviteMessage, setInviteMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isInviting, setIsInviting] = useState(false);
+  const [resendingInvitationId, setResendingInvitationId] = useState("");
 
   useEffect(() => {
     if (!settings?.organization) return;
@@ -51,6 +55,8 @@ export default function RMRoadsSettingsPage() {
       name: settings.organization.name,
       alertEmailsEnabled: settings.organization.alertEmailsEnabled,
       alertRecipients: settings.organization.alertRecipients.join(", "),
+      weeklySummaryEmailsEnabled: settings.organization.weeklySummaryEmailsEnabled,
+      weeklySummaryRecipients: settings.organization.weeklySummaryRecipients.join(", "),
       pilotMode: settings.organization.pilotMode as PilotMode,
       pilotSuccessMetric: settings.organization.pilotSuccessMetric,
       pilotTargetDecisionHours: settings.organization.pilotTargetDecisionHours,
@@ -100,6 +106,21 @@ export default function RMRoadsSettingsPage() {
       setInviteMessage("Invitation cancelled.");
     } catch (error: any) {
       setInviteMessage(error.message || "Could not cancel invitation.");
+    }
+  }
+
+  async function handleResendInvitation(invitationId: string) {
+    setInviteMessage("");
+    setResendingInvitationId(invitationId);
+
+    try {
+      await resendRMRoadsWorkspaceInvitation({ invitationId });
+      await settingsQuery.refetch();
+      setInviteMessage("Invitation email resent.");
+    } catch (error: any) {
+      setInviteMessage(error.message || "Could not resend invitation email.");
+    } finally {
+      setResendingInvitationId("");
     }
   }
 
@@ -227,6 +248,39 @@ export default function RMRoadsSettingsPage() {
                   </div>
                 </CardContent>
               </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Weekly Pilot Summary</CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-4">
+                  <label className="flex items-center justify-between gap-4 rounded border border-border bg-card-subtle p-4">
+                    <span>
+                      <span className="block text-sm font-semibold">Enable weekly summary emails</span>
+                      <span className="mt-1 block text-xs leading-5 text-muted-foreground">
+                        Send a Monday pilot summary with imports, top risks, decisions, value, and alert delivery health.
+                      </span>
+                    </span>
+                    <Switch
+                      checked={form.weeklySummaryEmailsEnabled}
+                      onCheckedChange={(checked) => setForm((current) => ({ ...current, weeklySummaryEmailsEnabled: checked }))}
+                    />
+                  </label>
+                  <div className="grid gap-2">
+                    <Label htmlFor="weekly-summary-recipients">Summary recipients</Label>
+                    <Textarea
+                      id="weekly-summary-recipients"
+                      placeholder="ops@example.com, leadership@example.com"
+                      value={form.weeklySummaryRecipients}
+                      onChange={(event) => setForm((current) => ({ ...current, weeklySummaryRecipients: event.currentTarget.value }))}
+                    />
+                    <p className="text-xs leading-5 text-muted-foreground">
+                      Last status: {formatRole(settings.organization.weeklySummaryEmailStatus)}
+                      {settings.organization.weeklySummaryLastSentAt ? ` · Last sent ${formatDate(settings.organization.weeklySummaryLastSentAt)}` : ""}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
             <aside className="grid content-start gap-6">
@@ -280,16 +334,31 @@ export default function RMRoadsSettingsPage() {
                             <div className="mt-1 text-xs text-muted-foreground">
                               {formatRole(invitation.role)} · {formatRole(invitation.status)} · Sent {formatDate(invitation.createdAt)}
                             </div>
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              Email {formatRole(invitation.inviteEmailStatus)}
+                              {invitation.inviteEmailSentAt ? ` · ${formatDate(invitation.inviteEmailSentAt)}` : ""}
+                            </div>
                           </div>
                           {invitation.status === "pending" ? (
-                            <Button
-                              onClick={() => handleCancelInvitation(invitation.id)}
-                              size="sm"
-                              type="button"
-                              variant="outline"
-                            >
-                              Cancel
-                            </Button>
+                            <div className="flex shrink-0 flex-col gap-2">
+                              <Button
+                                disabled={resendingInvitationId === invitation.id}
+                                onClick={() => handleResendInvitation(invitation.id)}
+                                size="sm"
+                                type="button"
+                                variant="outline"
+                              >
+                                {resendingInvitationId === invitation.id ? "Sending..." : "Resend"}
+                              </Button>
+                              <Button
+                                onClick={() => handleCancelInvitation(invitation.id)}
+                                size="sm"
+                                type="button"
+                                variant="outline"
+                              >
+                                Cancel
+                              </Button>
+                            </div>
                           ) : null}
                         </div>
                       </div>
