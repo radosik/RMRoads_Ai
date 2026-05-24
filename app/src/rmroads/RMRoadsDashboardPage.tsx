@@ -36,6 +36,7 @@ import {
   SelectValue,
 } from "../client/components/ui/select";
 import { Textarea } from "../client/components/ui/textarea";
+import { requiredShipmentCsvFields, type ImportError } from "./domain/csv";
 import { generateRecommendation } from "./domain/recommendations";
 import type {
   DisruptionSeverity,
@@ -63,8 +64,41 @@ const defaultEventForm = {
   source: "Manual pilot signal",
 };
 
+const shipmentCsvTemplateRows = [
+  requiredShipmentCsvFields,
+  [
+    "SHP-1001",
+    "Northstar Retail",
+    "Los Angeles CA",
+    "Chicago IL",
+    "Ocean",
+    "Maersk",
+    "2026-05-25",
+    "2026-06-02",
+    "critical",
+    "185000",
+    "Electronics",
+    "Midwest DC",
+  ],
+  [
+    "SHP-1002",
+    "Atlas Medical",
+    "Shanghai CN",
+    "Long Beach CA",
+    "Ocean",
+    "CMA CGM",
+    "2026-05-26",
+    "2026-06-08",
+    "high",
+    "98000",
+    "Medical Supplies",
+    "West Coast DC",
+  ],
+];
+
 export default function RMRoadsDashboardPage() {
   const [importMessage, setImportMessage] = useState("");
+  const [importErrors, setImportErrors] = useState<ImportError[]>([]);
   const [alertSettingsMessage, setAlertSettingsMessage] = useState("");
   const [isImporting, setIsImporting] = useState(false);
   const [priorityFilter, setPriorityFilter] = useState("all");
@@ -120,6 +154,7 @@ export default function RMRoadsDashboardPage() {
   const handleSeedDemoData = async () => {
     await seedRMRoadsDemoData();
     setImportMessage("");
+    setImportErrors([]);
     await refreshDashboard();
   };
 
@@ -136,15 +171,24 @@ export default function RMRoadsDashboardPage() {
       setImportMessage(
         `Imported ${result.acceptedCount} shipments. ${result.rejectedCount} rows rejected, ${result.duplicateCount} duplicates.`,
       );
+      setImportErrors(result.errors);
       setSelectedShipmentId("");
       setSelectedExceptionId("");
       await refreshDashboard();
     } catch (error: any) {
       setImportMessage(error.message || "CSV import failed.");
+      setImportErrors([]);
     } finally {
       setIsImporting(false);
       event.currentTarget.value = "";
     }
+  };
+
+  const handleDownloadTemplate = () => {
+    downloadCsv(
+      `rmroads-shipment-template-${new Date().toISOString().slice(0, 10)}.csv`,
+      shipmentCsvTemplateRows,
+    );
   };
 
   const handleEventSubmit = async (event: FormEvent) => {
@@ -236,7 +280,7 @@ export default function RMRoadsDashboardPage() {
           <CardHeader>
             <CardTitle>Shipment CSV Import</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(14rem,20rem)] md:items-center">
+          <CardContent className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)] md:items-start">
             <div className="min-w-0">
               <p className="text-muted-foreground text-sm">
                 Upload the MVP shipment CSV schema. Valid shipments are stored in
@@ -246,7 +290,17 @@ export default function RMRoadsDashboardPage() {
                 <p className="mt-3 text-sm font-semibold text-emerald-700 dark:text-emerald-300">{importMessage}</p>
               ) : null}
             </div>
-            <Input className="min-w-0" accept=".csv,text/csv" disabled={isImporting} onChange={handleCsvImport} type="file" />
+            <div className="grid min-w-0 gap-3">
+              <Button onClick={handleDownloadTemplate} type="button" variant="outline">
+                Download CSV Template
+              </Button>
+              <Input className="min-w-0" accept=".csv,text/csv" disabled={isImporting} onChange={handleCsvImport} type="file" />
+            </div>
+            {importErrors.length ? (
+              <div className="min-w-0 md:col-span-2">
+                <ImportErrorsTable errors={importErrors} />
+              </div>
+            ) : null}
           </CardContent>
         </Card>
 
@@ -629,6 +683,36 @@ function AlertLogCard({ alerts }: any) {
   return <SimpleTableCard title="Critical Alert Log" empty="No critical alerts generated yet." headers={["Created", "Sent", "Shipment", "Risk", "Message"]} rows={alerts.map((alert: any) => [formatDateTime(alert.createdAt), alert.sentAt ? formatDateTime(alert.sentAt) : "Not sent", alert.shipmentId, `${alert.riskLevel} ${alert.riskScore}/100`, alert.message])} />;
 }
 
+function ImportErrorsTable({ errors }: { errors: ImportError[] }) {
+  return (
+    <div className="rounded-md border border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100">
+      <div className="border-b border-amber-200 px-3 py-2 text-sm font-semibold dark:border-amber-900">
+        Import issues to fix
+      </div>
+      <div className="max-w-full overflow-hidden">
+        <table className="w-full table-fixed text-left text-xs sm:text-sm">
+          <thead className="border-b border-amber-200 text-xs uppercase text-amber-800 dark:border-amber-900 dark:text-amber-200">
+            <tr>
+              <th className="w-[16%] py-3 pl-2 pr-2 sm:pl-3">Row</th>
+              <th className="w-[24%] py-3 pr-2">Shipment</th>
+              <th className="w-[60%] py-3 pr-2">Issue</th>
+            </tr>
+          </thead>
+          <tbody>
+            {errors.map((error, index) => (
+              <tr className="border-b border-amber-200 last:border-b-0 dark:border-amber-900" key={`${error.rowNumber}-${error.shipmentId}-${index}`}>
+                <td className="py-3 pl-2 pr-2 align-top [overflow-wrap:anywhere] sm:pl-3">{error.rowNumber}</td>
+                <td className="py-3 pr-2 align-top [overflow-wrap:anywhere]">{error.shipmentId}</td>
+                <td className="py-3 pr-2 align-top [overflow-wrap:anywhere]">{error.message}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function MetricCard({ icon, label, value }: { icon: ReactNode; label: string; value: string | number }) {
   return <Card className="min-w-0 overflow-hidden"><CardContent className="flex min-w-0 items-center justify-between gap-4 p-5"><div className="min-w-0"><div className="text-muted-foreground text-sm font-semibold">{label}</div><div className="mt-2 break-words text-2xl font-bold leading-tight 2xl:text-[1.7rem]">{value}</div></div><div className="shrink-0 rounded-md bg-emerald-50 p-3 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200">{icon}</div></CardContent></Card>;
 }
@@ -673,6 +757,22 @@ function EmptyRow({ colSpan, message }: { colSpan: number; message: string }) {
 
 function SimpleTableCard({ empty, headers, rows, title }: { empty: string; headers: string[]; rows: Array<Array<string | number>>; title: string }) {
   return <Card className="min-w-0 overflow-hidden"><CardHeader><CardTitle>{title}</CardTitle></CardHeader><CardContent className="min-w-0"><div className="max-w-full overflow-hidden rounded-md border border-border"><table className="w-full table-fixed text-left text-xs sm:text-sm"><thead className="text-muted-foreground border-b text-xs uppercase"><tr>{headers.map((header, index) => <th className={index === 0 ? "py-3 pl-2 pr-2 sm:pl-3" : "py-3 pr-2"} key={header}>{header}</th>)}</tr></thead><tbody>{rows.map((row, index) => <tr className="border-b last:border-b-0" key={`${title}-${index}`}>{row.map((cell, cellIndex) => <td className={cellIndex === 0 ? "py-4 pl-2 pr-2 align-top [overflow-wrap:anywhere] sm:pl-3" : "py-4 pr-2 align-top [overflow-wrap:anywhere]"} key={`${title}-${index}-${cellIndex}`}>{cell}</td>)}</tr>)}{!rows.length ? <EmptyRow colSpan={headers.length} message={empty} /> : null}</tbody></table></div></CardContent></Card>;
+}
+
+function downloadCsv(fileName: string, rows: Array<readonly string[]>) {
+  const csv = rows.map((row) => row.map(escapeCsvCell).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function escapeCsvCell(value: string) {
+  return `"${value.replaceAll('"', '""')}"`;
 }
 
 function formatAction(value: string) {
