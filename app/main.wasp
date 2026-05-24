@@ -111,6 +111,21 @@ page RMRoadsDashboardPage {
   component: import RMRoadsDashboardPage from "@src/rmroads/RMRoadsDashboardPage"
 }
 
+route RMRoadsPilotRoute { path: "/pilot", to: RMRoadsPilotPage }
+page RMRoadsPilotPage {
+  component: import RMRoadsPilotPage from "@src/rmroads/RMRoadsPilotPage"
+}
+
+action submitRMRoadsPilotLead {
+  fn: import { submitRMRoadsPilotLead } from "@src/rmroads/leadOperations",
+  entities: [PilotLead]
+}
+
+query getRMRoadsPilotLeads {
+  fn: import { getRMRoadsPilotLeads } from "@src/rmroads/leadOperations",
+  entities: [User, PilotLead]
+}
+
 query getRMRoadsDashboard {
   fn: import { getRMRoadsDashboard } from "@src/rmroads/operations",
   entities: [User, Organization, OrganizationMember, ShipmentImport, Shipment, DisruptionEvent, ShipmentException, ExceptionDecision, CriticalAlert]
@@ -327,6 +342,12 @@ route AdminUsersRoute { path: "/admin/users", to: AdminUsersPage }
 page AdminUsersPage {
   authRequired: true,
   component: import AdminUsers from "@src/admin/dashboards/users/UsersDashboardPage"
+}
+
+route AdminPilotLeadsRoute { path: "/admin/pilot-leads", to: AdminPilotLeadsPage }
+page AdminPilotLeadsPage {
+  authRequired: true,
+  component: import AdminPilotLeads from "@src/admin/dashboards/pilot-leads/PilotLeadsPage"
 }
 
 route AdminSettingsRoute { path: "/admin/settings", to: AdminSettingsPage }

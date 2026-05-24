@@ -201,6 +201,25 @@ model CriticalAlert {
   @@index([organizationId, createdAt])
 }
 
+model PilotLead {
+  id                  String   @id @default(uuid())
+  createdAt           DateTime @default(now())
+
+  name                String
+  workEmail           String
+  company             String
+  role                String
+  shipmentVolume      String
+  currentTools        String
+  disruptionPain      String
+  pilotGoal           String
+  status              String   @default("new")
+
+  @@index([createdAt])
+  @@index([workEmail])
+  @@index([status])
+}
+
 model GptResponse {
   id                        String          @id @default(uuid())
   createdAt                 DateTime        @default(now())

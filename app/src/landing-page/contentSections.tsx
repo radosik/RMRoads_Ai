@@ -1,120 +1,92 @@
-import daBoiAvatar from "../client/static/da-boi.webp";
-import kivo from "../client/static/examples/kivo.webp";
-import messync from "../client/static/examples/messync.webp";
-import microinfluencerClub from "../client/static/examples/microinfluencers.webp";
-import promptpanda from "../client/static/examples/promptpanda.webp";
-import reviewradar from "../client/static/examples/reviewradar.webp";
-import scribeist from "../client/static/examples/scribeist.webp";
-import searchcraft from "../client/static/examples/searchcraft.webp";
-import { BlogUrl, DocsUrl } from "../shared/common";
+import publicBanner from "../client/static/public-banner.webp";
+import { BlogUrl } from "../shared/common";
 import type { GridFeature } from "./components/FeaturesGrid";
 
 export const features: GridFeature[] = [
   {
-    name: "Cool Feature 1",
-    description: "Your feature",
-    emoji: "🤝",
-    href: DocsUrl,
+    name: "Shipment CSV Import",
+    description: "Start pilots from ordinary shipment exports instead of waiting on integrations.",
+    emoji: "CSV",
+    href: "/pilot",
     size: "small",
   },
   {
-    name: "Cool Feature 2",
-    description: "Feature description",
-    emoji: "🔐",
-    href: DocsUrl,
+    name: "Risk-Ranked Exceptions",
+    description: "Prioritize shipments by lane disruption, urgency, value, and confidence.",
+    emoji: "RISK",
+    href: "/pilot",
     size: "small",
   },
   {
-    name: "Cool Feature 3",
-    description: "Describe your cool feature here",
-    emoji: "🥞",
-    href: DocsUrl,
+    name: "Planner Approval",
+    description: "Approve, defer, or reject recommended recovery actions with decision notes.",
+    emoji: "OK",
+    href: "/pilot",
     size: "medium",
   },
   {
-    name: "Cool Feature 4",
-    description: "Describe your cool feature here",
-    emoji: "💸",
-    href: DocsUrl,
+    name: "Critical Alerts",
+    description: "Log critical exceptions and notify configured recipients when urgent risk appears.",
+    emoji: "ALRT",
+    href: "/pilot",
     size: "large",
   },
   {
-    name: "Cool Feature 5",
-    description: "Describe your cool feature here",
-    emoji: "💼",
-    href: DocsUrl,
+    name: "Pilot Value Metrics",
+    description: "Track reviewed decisions, approved actions, average risk, and estimated protected shipment value.",
+    emoji: "ROI",
+    href: "/pilot",
     size: "large",
   },
   {
-    name: "Cool Feature 6",
-    description: "It is cool",
-    emoji: "📈",
-    href: DocsUrl,
+    name: "Audit Trail",
+    description: "Persist recommendation inputs, outputs, status, owner, and timestamped decisions.",
+    emoji: "LOG",
+    href: "/pilot",
     size: "small",
-  },
-  {
-    name: "Cool Feature 7",
-    description: "Cool feature",
-    emoji: "📧",
-    href: DocsUrl,
-    size: "small",
-  },
-  {
-    name: "Cool Feature 8",
-    description: "Describe your cool feature here",
-    emoji: "🤖",
-    href: DocsUrl,
-    size: "medium",
-  },
-  {
-    name: "Cool Feature 9",
-    description: "Describe your cool feature here",
-    emoji: "🚀",
-    href: DocsUrl,
-    size: "medium",
   },
 ];
 
 export const testimonials = [
   {
-    name: "Da Boi",
-    role: "Wasp Mascot",
-    avatarSrc: daBoiAvatar,
-    socialUrl: "https://twitter.com/wasplang",
-    quote: "I don't even know how to code. I'm just a plushie.",
-  },
-  {
-    name: "Mr. Foobar",
-    role: "Founder @ Cool Startup",
-    avatarSrc: daBoiAvatar,
+    name: "Pilot target",
+    role: "Transportation operations leader",
+    avatarSrc: publicBanner,
     socialUrl: "",
-    quote: "This product makes me cooler than I already am.",
+    quote: "The useful test is whether the queue finds the few shipments planners should act on today.",
   },
   {
-    name: "Jamie",
-    role: "Happy Customer",
-    avatarSrc: daBoiAvatar,
-    socialUrl: "#",
-    quote: "My cats love it!",
+    name: "Pilot target",
+    role: "Supply chain planning leader",
+    avatarSrc: publicBanner,
+    socialUrl: "",
+    quote: "CSV-first is the right pilot wedge because integrations slow every early validation cycle.",
   },
 ];
 
 export const faqs = [
   {
     id: 1,
-    question: "Whats the meaning of life?",
-    answer: "42.",
-    href: "https://en.wikipedia.org/wiki/42_(number)",
+    question: "Do we need a TMS integration for the pilot?",
+    answer: "No. The MVP is designed around shipment CSV exports so the pilot can start before integrations.",
+    href: "/pilot",
+  },
+  {
+    id: 2,
+    question: "Does RMRoads AI make autonomous shipment changes?",
+    answer: "No. The MVP recommends and compares actions, but planners approve, defer, or reject every decision.",
+    href: "/pilot",
   },
 ];
 
 export const footerNavigation = {
   app: [
-    { name: "Documentation", href: DocsUrl },
+    { name: "Pilot", href: "/pilot" },
+    { name: "Workspace", href: "/rmroads" },
     { name: "Blog", href: BlogUrl },
   ],
   company: [
-    { name: "About", href: "https://wasp.sh" },
+    { name: "About", href: "/pilot" },
     { name: "Privacy", href: "#" },
     { name: "Terms of Service", href: "#" },
   ],
@@ -122,45 +94,21 @@ export const footerNavigation = {
 
 export const examples = [
   {
-    name: "Example #1",
-    description: "Describe your example here.",
-    imageSrc: kivo,
-    href: "#",
+    name: "Import active shipments",
+    description: "Upload shipment exports and validate the rows that can be scored.",
+    imageSrc: publicBanner,
+    href: "/pilot",
   },
   {
-    name: "Example #2",
-    description: "Describe your example here.",
-    imageSrc: messync,
-    href: "#",
+    name: "Create disruption signals",
+    description: "Add manual events for weather, port congestion, carrier issues, or customer-sensitive lanes.",
+    imageSrc: publicBanner,
+    href: "/pilot",
   },
   {
-    name: "Example #3",
-    description: "Describe your example here.",
-    imageSrc: microinfluencerClub,
-    href: "#",
-  },
-  {
-    name: "Example #4",
-    description: "Describe your example here.",
-    imageSrc: promptpanda,
-    href: "#",
-  },
-  {
-    name: "Example #5",
-    description: "Describe your example here.",
-    imageSrc: reviewradar,
-    href: "#",
-  },
-  {
-    name: "Example #6",
-    description: "Describe your example here.",
-    imageSrc: scribeist,
-    href: "#",
-  },
-  {
-    name: "Example #7",
-    description: "Describe your example here.",
-    imageSrc: searchcraft,
-    href: "#",
+    name: "Approve recovery decisions",
+    description: "Compare scenarios and keep an auditable human approval workflow.",
+    imageSrc: publicBanner,
+    href: "/pilot",
   },
 ];

@@ -87,7 +87,7 @@ export default function NavBar({
                     },
                   )}
                 >
-                  Your SaaS
+                  RMRoads AI
                 </span>
               </WaspRouterLink>
 
@@ -180,7 +180,7 @@ function NavBarMobileMenu({
           <SheetHeader>
             <SheetTitle className="flex items-center">
               <WaspRouterLink to={routes.LandingPageRoute.to}>
-                <span className="sr-only">Your SaaS</span>
+                <span className="sr-only">RMRoads AI</span>
                 <NavLogo isScrolled={false} />
               </WaspRouterLink>
             </SheetTitle>
@@ -251,6 +251,6 @@ const NavLogo = ({ isScrolled }: { isScrolled: boolean }) => (
       "size-7": isScrolled,
     })}
     src={logo}
-    alt="Your SaaS App"
+    alt="RMRoads AI"
   />
 );
