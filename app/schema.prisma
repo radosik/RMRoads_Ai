@@ -27,6 +27,7 @@ model User {
   tasks                     Task[]
   files                     File[]
   organizationMemberships   OrganizationMember[]
+  sentWorkspaceInvitations   WorkspaceInvitation[] @relation("WorkspaceInvitationSentBy")
   shipmentImports           ShipmentImport[]
   exceptionDecisions        ExceptionDecision[]
 }
@@ -40,8 +41,13 @@ model Organization {
   slug                      String          @unique
   alertEmailsEnabled        Boolean         @default(false)
   alertRecipients           String          @default("")
+  pilotMode                 String          @default("demo")
+  pilotSuccessMetric        String          @default("Time-to-decision and protected shipment value")
+  pilotTargetDecisionHours  Int             @default(4)
+  securityReviewCompleted   Boolean         @default(false)
 
   members                   OrganizationMember[]
+  workspaceInvitations      WorkspaceInvitation[]
   shipmentImports           ShipmentImport[]
   shipments                 Shipment[]
   disruptionEvents          DisruptionEvent[]
@@ -63,6 +69,28 @@ model OrganizationMember {
 
   @@unique([organizationId, userId])
   @@index([userId])
+}
+
+model WorkspaceInvitation {
+  id                        String          @id @default(uuid())
+  createdAt                 DateTime        @default(now())
+  updatedAt                 DateTime        @updatedAt
+  acceptedAt                DateTime?
+  cancelledAt               DateTime?
+
+  organization              Organization    @relation(fields: [organizationId], references: [id])
+  organizationId            String
+
+  email                     String
+  role                      String          @default("planner")
+  status                    String          @default("pending")
+
+  sentBy                    User            @relation("WorkspaceInvitationSentBy", fields: [sentById], references: [id])
+  sentById                  String
+
+  @@unique([organizationId, email])
+  @@index([organizationId, status])
+  @@index([email])
 }
 
 model ShipmentImport {

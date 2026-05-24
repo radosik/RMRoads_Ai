@@ -111,6 +111,12 @@ page RMRoadsDashboardPage {
   component: import RMRoadsDashboardPage from "@src/rmroads/RMRoadsDashboardPage"
 }
 
+route RMRoadsSettingsRoute { path: "/rmroads/settings", to: RMRoadsSettingsPage }
+page RMRoadsSettingsPage {
+  authRequired: true,
+  component: import RMRoadsSettingsPage from "@src/rmroads/RMRoadsSettingsPage"
+}
+
 route RMRoadsPilotRoute { path: "/pilot", to: RMRoadsPilotPage }
 page RMRoadsPilotPage {
   component: import RMRoadsPilotPage from "@src/rmroads/RMRoadsPilotPage"
@@ -134,6 +140,16 @@ action updateRMRoadsPilotLeadStatus {
 query getRMRoadsDashboard {
   fn: import { getRMRoadsDashboard } from "@src/rmroads/operations",
   entities: [User, Organization, OrganizationMember, ShipmentImport, Shipment, DisruptionEvent, ShipmentException, ExceptionDecision, CriticalAlert]
+}
+
+query getRMRoadsWorkspaceSettings {
+  fn: import { getRMRoadsWorkspaceSettings } from "@src/rmroads/operations",
+  entities: [User, Organization, OrganizationMember, WorkspaceInvitation]
+}
+
+query getRMRoadsTenantHealth {
+  fn: import { getRMRoadsTenantHealth } from "@src/rmroads/operations",
+  entities: [User, Organization, OrganizationMember, WorkspaceInvitation, ShipmentImport, Shipment, ShipmentException, ExceptionDecision, CriticalAlert]
 }
 
 action seedRMRoadsDemoData {
@@ -169,6 +185,21 @@ action decideRMRoadsException {
 action updateRMRoadsAlertSettings {
   fn: import { updateRMRoadsAlertSettings } from "@src/rmroads/operations",
   entities: [User, Organization, OrganizationMember, ShipmentImport, Shipment, DisruptionEvent, ShipmentException, ExceptionDecision, CriticalAlert]
+}
+
+action updateRMRoadsWorkspaceSettings {
+  fn: import { updateRMRoadsWorkspaceSettings } from "@src/rmroads/operations",
+  entities: [User, Organization, OrganizationMember, WorkspaceInvitation]
+}
+
+action createRMRoadsWorkspaceInvitation {
+  fn: import { createRMRoadsWorkspaceInvitation } from "@src/rmroads/operations",
+  entities: [User, Organization, OrganizationMember, WorkspaceInvitation]
+}
+
+action cancelRMRoadsWorkspaceInvitation {
+  fn: import { cancelRMRoadsWorkspaceInvitation } from "@src/rmroads/operations",
+  entities: [User, Organization, OrganizationMember, WorkspaceInvitation]
 }
 
 //#region Auth Pages
@@ -353,6 +384,12 @@ route AdminPilotLeadsRoute { path: "/admin/pilot-leads", to: AdminPilotLeadsPage
 page AdminPilotLeadsPage {
   authRequired: true,
   component: import AdminPilotLeads from "@src/admin/dashboards/pilot-leads/PilotLeadsPage"
+}
+
+route AdminTenantHealthRoute { path: "/admin/tenant-health", to: AdminTenantHealthPage }
+page AdminTenantHealthPage {
+  authRequired: true,
+  component: import AdminTenantHealth from "@src/admin/dashboards/tenant-health/TenantHealthPage"
 }
 
 route AdminSettingsRoute { path: "/admin/settings", to: AdminSettingsPage }

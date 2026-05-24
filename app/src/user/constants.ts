@@ -17,6 +17,13 @@ export const userMenuItems = [
     isAdminOnly: false,
   },
   {
+    name: "Workspace Settings",
+    to: routes.RMRoadsSettingsRoute.to,
+    icon: Settings,
+    isAuthRequired: true,
+    isAdminOnly: false,
+  },
+  {
     name: "Admin Dashboard",
     to: routes.AdminRoute.to,
     icon: Shield,

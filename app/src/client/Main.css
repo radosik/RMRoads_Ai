@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
 @plugin "@tailwindcss/forms";
@@ -246,35 +247,35 @@
   }
 
   .dark {
-    --background: 210 50% 5%;
-    --foreground: 0 0% 98%;
-    --card: 210 50% 5%;
-    --card-foreground: 0 0% 98%;
-    --card-accent: 31 57% 93%;
-    --card-accent-foreground: 0 0% 3.9%;
-    --card-subtle: 233 24% 15%;
-    --card-subtle-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 31 57% 93%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 209 91% 61%;
-    --secondary-foreground: 0 0% 98%;
-    --secondary-muted: 210 67% 94%;
-    --secondary-muted-foreground: 0 0% 3.9%;
-    --muted: 210 100% 13%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 31 57% 93%;
-    --accent-foreground: 210 100% 13%;
-    --destructive: 0 62.8% 63%;
-    --destructive-foreground: 0 0% 98%;
+    --background: 211 76% 8%;
+    --foreground: 213 77% 91%;
+    --card: 211 76% 8%;
+    --card-foreground: 213 77% 91%;
+    --card-accent: 214 33% 22%;
+    --card-accent-foreground: 213 77% 91%;
+    --card-subtle: 211 46% 13%;
+    --card-subtle-foreground: 213 77% 91%;
+    --popover: 211 76% 8%;
+    --popover-foreground: 213 77% 91%;
+    --primary: 220 3% 78%;
+    --primary-foreground: 210 7% 11%;
+    --secondary: 190 91% 63%;
+    --secondary-foreground: 193 100% 12%;
+    --secondary-muted: 190 100% 84%;
+    --secondary-muted-foreground: 193 100% 12%;
+    --muted: 212 50% 15%;
+    --muted-foreground: 220 4% 78%;
+    --accent: 180 40% 72%;
+    --accent-foreground: 180 96% 11%;
+    --destructive: 5 100% 84%;
+    --destructive-foreground: 356 100% 20%;
     --success: 141 71% 48%;
     --success-foreground: 0 0% 98%;
     --warning: 36 100% 50%;
     --warning-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
+    --border: 210 4% 28%;
+    --input: 210 4% 28%;
+    --ring: 190 91% 63%;
   }
 }
 
@@ -284,7 +285,184 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: Geist, Inter, ui-sans-serif, system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  .rmr-workspace {
+    --rmr-context-height: 3.25rem;
+    --rmr-detail-gap: 1rem;
+    --rmr-page-pad: 1rem;
+    --rmr-panel-pad: 0.875rem;
+    --rmr-queue-row-pad: 0.625rem;
+    --rmr-rail-width: clamp(13rem, 15vw, 16rem);
+    --rmr-scenario-pad: 0.875rem;
+  }
+
+  @media (max-height: 820px) {
+    .rmr-workspace {
+      --rmr-context-height: 3rem;
+      --rmr-detail-gap: 0.625rem;
+      --rmr-page-pad: 0.75rem;
+      --rmr-panel-pad: 0.625rem;
+      --rmr-queue-row-pad: 0.5rem;
+      --rmr-scenario-pad: 0.625rem;
+    }
+  }
+
+  @media (min-height: 980px) {
+    .rmr-workspace {
+      --rmr-context-height: 3.5rem;
+      --rmr-detail-gap: 1.125rem;
+      --rmr-page-pad: 1.25rem;
+      --rmr-panel-pad: 1rem;
+      --rmr-queue-row-pad: 0.75rem;
+      --rmr-scenario-pad: 1rem;
+    }
+  }
+
+  .rmr-grid-bg {
+    background-image:
+      linear-gradient(to right, rgba(143, 145, 148, 0.08) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(143, 145, 148, 0.08) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  .rmr-panel {
+    @apply rounded border border-border/50 bg-card-subtle/70 shadow-[0_18px_60px_rgba(0,0,0,0.22)];
+  }
+
+  .rmr-label {
+    font-family: Geist, Inter, ui-sans-serif, system-ui, sans-serif;
+    @apply text-[11px] font-bold uppercase leading-4 tracking-[0.05em];
+  }
+
+  .rmr-data {
+    font-family: Geist, Inter, ui-sans-serif, system-ui, sans-serif;
+    @apply text-[13px] leading-[18px] tracking-normal;
+  }
+
+  .rmr-glow {
+    box-shadow: 0 0 18px -4px rgba(76, 215, 246, 0.48);
+  }
+
+  .rmr-stream {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .rmr-stream::after {
+    animation: rmr-stream-pulse 2.6s infinite linear;
+    background: linear-gradient(90deg, transparent, rgba(76, 215, 246, 0.85), transparent);
+    content: "";
+    height: 1px;
+    left: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+    transform-origin: left;
+  }
+
+  .rmr-scrollbar::-webkit-scrollbar {
+    height: 4px;
+    width: 4px;
+  }
+
+  .rmr-scrollbar::-webkit-scrollbar-track {
+    background: rgba(5, 20, 36, 0.1);
+  }
+
+  .rmr-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(143, 145, 148, 0.3);
+    border-radius: 2px;
+  }
+
+  .rmr-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(143, 145, 148, 0.5);
+  }
+}
+
+@keyframes rmr-stream-pulse {
+  0% {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rmr-stream::after {
+    animation: none;
+  }
+}
+
+.rmr-workspace [data-slot="card"] {
+  background: rgba(255, 255, 255, 0.86);
+  border-color: rgba(209, 213, 219, 0.9);
+  border-radius: 4px;
+  box-shadow: 0 16px 46px rgba(15, 23, 42, 0.08);
+}
+
+.dark .rmr-workspace [data-slot="card"] {
+  background: rgba(18, 33, 49, 0.76);
+  border-color: rgba(68, 71, 74, 0.68);
+  box-shadow: 0 16px 46px rgba(0, 0, 0, 0.18);
+}
+
+.rmr-workspace table thead {
+  background: rgba(243, 244, 246, 0.72);
+}
+
+.dark .rmr-workspace table thead {
+  background: rgba(5, 20, 36, 0.44);
+}
+
+.rmr-workspace table tr {
+  border-color: rgba(209, 213, 219, 0.8);
+}
+
+.dark .rmr-workspace table tr {
+  border-color: rgba(68, 71, 74, 0.58);
+}
+
+.rmr-workspace input,
+.rmr-workspace textarea,
+.rmr-workspace select {
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(209, 213, 219, 0.9);
+  color: hsl(var(--foreground));
+  border-radius: 4px;
+}
+
+.dark .rmr-workspace input,
+.dark .rmr-workspace textarea,
+.dark .rmr-workspace select {
+  background: rgba(5, 20, 36, 0.7);
+  border-color: rgba(68, 71, 74, 0.72);
+  color: #d4e4fa;
+}
+
+.rmr-workspace input:focus,
+.rmr-workspace textarea:focus,
+.rmr-workspace select:focus {
+  border-color: #4cd7f6;
+  box-shadow: 0 0 0 2px rgba(76, 215, 246, 0.18);
 }
 
 /* third-party libraries CSS */

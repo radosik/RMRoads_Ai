@@ -1,4 +1,4 @@
-import { LogIn, Menu } from "lucide-react";
+import { Database, LogIn, Menu } from "lucide-react";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { Link as ReactRouterLink } from "react-router";
 import { useAuth } from "wasp/client/auth";
@@ -14,7 +14,6 @@ import { throttleWithTrailingInvocation } from "../../../shared/utils";
 import { UserDropdown } from "../../../user/UserDropdown";
 import { UserMenuItems } from "../../../user/UserMenuItems";
 import { useIsLandingPage } from "../../hooks/useIsLandingPage";
-import logo from "../../static/logo.webp";
 import { cn } from "../../utils";
 import DarkModeSwitcher from "../DarkModeSwitcher";
 import { Announcement } from "./Announcement";
@@ -56,7 +55,7 @@ export default function NavBar({
       >
         <div
           className={cn("transition-all duration-300", {
-            "bg-background/90 border-border mx-4 rounded-full border pr-2 shadow-lg backdrop-blur-lg md:mx-20 lg:pr-0":
+            "bg-background/95 border-border mx-4 rounded border pr-2 shadow-[0_18px_55px_rgba(0,0,0,0.22)] backdrop-blur-lg md:mx-20 lg:pr-0":
               isScrolled,
             "bg-background/80 border-border mx-0 border-b backdrop-blur-lg":
               !isScrolled,
@@ -67,7 +66,7 @@ export default function NavBar({
               "flex items-center justify-between transition-all duration-300",
               {
                 "p-3 lg:px-6": isScrolled,
-                "p-6 lg:px-8": !isScrolled,
+                "p-4 lg:px-8": !isScrolled,
               },
             )}
             aria-label="Global"
@@ -75,12 +74,12 @@ export default function NavBar({
             <div className="flex items-center gap-6">
               <WaspRouterLink
                 to={routes.LandingPageRoute.to}
-                className="text-foreground hover:text-primary flex items-center transition-colors duration-300 ease-in-out"
+                className="text-foreground hover:text-secondary flex items-center transition-colors duration-300 ease-in-out"
               >
                 <NavLogo isScrolled={isScrolled} />
                 <span
                   className={cn(
-                    "text-foreground leading-6 font-semibold transition-all duration-300",
+                    "font-semibold leading-6 text-foreground transition-all duration-300",
                     {
                       "ml-2 text-sm": !isScrolled,
                       "ml-2 text-xs": isScrolled,
@@ -119,14 +118,14 @@ function NavBarDesktopUserDropdown({ isScrolled }: { isScrolled: boolean }) {
         <WaspRouterLink
           to={routes.LoginRoute.to}
           className={cn(
-            "ml-3 leading-6 font-semibold transition-all duration-300",
+            "rmr-label ml-3 leading-6 transition-all duration-300",
             {
               "text-sm": !isScrolled,
               "text-xs": isScrolled,
             },
           )}
         >
-          <div className="text-foreground hover:text-primary flex items-center transition-colors duration-300 ease-in-out">
+          <div className="text-foreground hover:text-secondary flex items-center transition-colors duration-300 ease-in-out">
             Log in{" "}
             <LogIn
               size={isScrolled ? "1rem" : "1.1rem"}
@@ -193,7 +192,7 @@ function NavBarMobileMenu({
               <div className="py-6">
                 {isUserLoading ? null : !user ? (
                   <WaspRouterLink to={routes.LoginRoute.to}>
-                    <div className="text-foreground hover:text-primary flex items-center justify-end transition-colors duration-300 ease-in-out">
+                    <div className="text-foreground hover:text-secondary flex items-center justify-end transition-colors duration-300 ease-in-out">
                       Log in <LogIn size="1.1rem" className="ml-1" />
                     </div>
                   </WaspRouterLink>
@@ -222,9 +221,9 @@ function renderNavigationItems(
   setMobileMenuOpen?: Dispatch<SetStateAction<boolean>>,
 ) {
   const menuStyles = cn({
-    "block rounded-lg px-3 py-2 text-sm font-medium leading-7 text-foreground hover:bg-accent hover:text-accent-foreground transition-colors":
+    "block rounded px-3 py-2 text-sm font-medium leading-7 text-foreground hover:bg-accent hover:text-accent-foreground transition-colors":
       !!setMobileMenuOpen,
-    "text-sm font-normal leading-6 text-foreground duration-300 ease-in-out hover:text-primary transition-colors":
+    "rmr-label text-muted-foreground duration-300 ease-in-out hover:text-secondary transition-colors":
       !setMobileMenuOpen,
   });
 
@@ -245,12 +244,16 @@ function renderNavigationItems(
 }
 
 const NavLogo = ({ isScrolled }: { isScrolled: boolean }) => (
-  <img
-    className={cn("transition-all duration-500", {
-      "size-8": !isScrolled,
-      "size-7": isScrolled,
-    })}
-    src={logo}
-    alt="RMRoads AI"
-  />
+  <span
+    className={cn(
+      "rmr-glow inline-flex items-center justify-center rounded border border-secondary/40 bg-secondary/10 text-secondary transition-all duration-500",
+      {
+        "size-8": !isScrolled,
+        "size-7": isScrolled,
+      },
+    )}
+    aria-hidden="true"
+  >
+    <Database className={cn({ "size-4": !isScrolled, "size-3.5": isScrolled })} />
+  </span>
 );

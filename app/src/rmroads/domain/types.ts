@@ -114,6 +114,7 @@ export type CriticalAlertEntry = {
   id: string;
   createdAt: string;
   sentAt: string;
+  deliveryStatus: string;
   exceptionId: string;
   shipmentId: string;
   customer: string;

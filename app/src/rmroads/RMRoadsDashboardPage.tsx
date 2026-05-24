@@ -1,13 +1,21 @@
+import { animate } from "animejs/animation";
+import { Link as ReactRouterLink } from "react-router";
+import { routes } from "wasp/client/router";
 import {
   AlertTriangle,
   CheckCircle2,
   ClipboardList,
-  DollarSign,
+  Database,
+  FileText,
+  History,
+  Plus,
+  Settings,
   Truck,
+  X,
 } from "lucide-react";
 import {
-  useMemo,
   useEffect,
+  useRef,
   useState,
   type ChangeEvent,
   type FormEvent,
@@ -19,9 +27,7 @@ import {
   getRMRoadsDashboard,
   importRMRoadsShipmentCsv,
   seedRMRoadsDemoData,
-  toggleRMRoadsDisruptionEventStatus,
   updateRMRoadsAlertSettings,
-  upsertRMRoadsDisruptionEvent,
   useQuery,
 } from "wasp/client/operations";
 import { Button } from "../client/components/ui/button";
@@ -40,8 +46,6 @@ import { requiredShipmentCsvFields, type ImportError } from "./domain/csv";
 import { generateRecommendation } from "./domain/recommendations";
 import type {
   DisruptionSeverity,
-  DisruptionStatus,
-  ExceptionStatus,
   RiskLevel,
   ScenarioAction,
 } from "./domain/types";
@@ -53,16 +57,9 @@ const currencyFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
 });
 
-const defaultEventForm = {
-  id: "",
-  type: "Port congestion",
-  severity: "high" as DisruptionSeverity,
-  affectedText: "Los Angeles CA",
-  mode: "Ocean",
-  carrier: "",
-  confidence: 75,
-  source: "Manual pilot signal",
-};
+function shouldRunMotion() {
+  return !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
 
 const shipmentCsvTemplateRows = [
   requiredShipmentCsvFields,
@@ -101,26 +98,22 @@ export default function RMRoadsDashboardPage() {
   const [importErrors, setImportErrors] = useState<ImportError[]>([]);
   const [alertSettingsMessage, setAlertSettingsMessage] = useState("");
   const [isImporting, setIsImporting] = useState(false);
-  const [priorityFilter, setPriorityFilter] = useState("all");
-  const [modeFilter, setModeFilter] = useState("all");
   const [ownerFilter, setOwnerFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [riskFilter, setRiskFilter] = useState("all");
-  const [selectedShipmentId, setSelectedShipmentId] = useState("");
   const [selectedExceptionId, setSelectedExceptionId] = useState("");
   const [selectedScenarioAction, setSelectedScenarioAction] = useState<ScenarioAction | "">("");
   const [decisionNote, setDecisionNote] = useState("");
   const [decisionError, setDecisionError] = useState("");
-  const [eventForm, setEventForm] = useState(defaultEventForm);
   const dashboardQuery = useQuery(getRMRoadsDashboard);
   const dashboard = dashboardQuery.data;
   const shipments = dashboard?.shipments || [];
   const exceptions = dashboard?.exceptions || [];
-  const selectedShipment = shipments.find((shipment) => shipment.id === selectedShipmentId);
   const selectedException = exceptions.find((exception) => exception.id === selectedExceptionId) || exceptions[0];
   const selectedExceptionShipment = selectedException
     ? shipments.find((shipment) => shipment.id === selectedException.shipmentId)
     : undefined;
+  const activeShipment = selectedExceptionShipment;
   const recommendation =
     selectedException && selectedExceptionShipment
       ? generateRecommendation(selectedException, selectedExceptionShipment)
@@ -128,15 +121,6 @@ export default function RMRoadsDashboardPage() {
   const selectedAction =
     selectedScenarioAction || selectedException?.selectedScenarioAction || recommendation?.primaryAction || "watch";
 
-  const modes = useMemo(
-    () => Array.from(new Set(shipments.map((shipment) => shipment.mode))).sort(),
-    [shipments],
-  );
-  const filteredShipments = shipments.filter((shipment) => {
-    const priorityMatch = priorityFilter === "all" || shipment.priority === priorityFilter;
-    const modeMatch = modeFilter === "all" || shipment.mode === modeFilter;
-    return priorityMatch && modeMatch;
-  });
   const filteredExceptions = exceptions.filter((exception) => {
     const ownerMatch =
       ownerFilter === "all" ||
@@ -172,7 +156,6 @@ export default function RMRoadsDashboardPage() {
         `Imported ${result.acceptedCount} shipments. ${result.rejectedCount} rows rejected, ${result.duplicateCount} duplicates.`,
       );
       setImportErrors(result.errors);
-      setSelectedShipmentId("");
       setSelectedExceptionId("");
       await refreshDashboard();
     } catch (error: any) {
@@ -189,13 +172,6 @@ export default function RMRoadsDashboardPage() {
       `rmroads-shipment-template-${new Date().toISOString().slice(0, 10)}.csv`,
       shipmentCsvTemplateRows,
     );
-  };
-
-  const handleEventSubmit = async (event: FormEvent) => {
-    event.preventDefault();
-    await upsertRMRoadsDisruptionEvent(eventForm);
-    setEventForm(defaultEventForm);
-    await refreshDashboard();
   };
 
   const handleDecision = async (status: "approved" | "deferred" | "rejected") => {
@@ -230,395 +206,476 @@ export default function RMRoadsDashboardPage() {
   };
 
   return (
-    <main className="bg-background min-h-screen py-8">
-      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 sm:px-6 lg:px-8">
-        <header className="flex flex-col gap-3">
-          <div className="text-muted-foreground text-sm font-semibold uppercase tracking-wide">
-            RMRoads AI
-          </div>
-          <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
-            <div>
-              <h1 className="text-foreground text-3xl font-bold tracking-tight sm:text-4xl">
-                Disruption Response Workspace
-              </h1>
-              <p className="text-muted-foreground mt-3 max-w-3xl text-base leading-7">
-                Import active shipments, manage disruption signals, rank
-                exceptions, compare recovery actions, and keep planner approval
-                in the loop.
-              </p>
+    <main className="rmr-workspace h-[calc(100vh-4rem)] overflow-hidden bg-background text-foreground">
+      <div className="flex h-full overflow-hidden">
+        <WorkbenchSideRail
+          dashboard={dashboard}
+          handleCsvImport={handleCsvImport}
+          handleDownloadTemplate={handleDownloadTemplate}
+          handleSeedDemoData={handleSeedDemoData}
+          importErrors={importErrors}
+          importMessage={importMessage}
+          isImporting={isImporting}
+        />
+
+        <section className="flex h-full min-w-0 flex-1 flex-col bg-background">
+          <WorkbenchContextBar
+            dashboard={dashboard}
+            dashboardQuery={dashboardQuery}
+            exceptions={exceptions}
+            handleSeedDemoData={handleSeedDemoData}
+          />
+
+          {dashboardQuery.isLoading ? (
+            <div className="border-b border-border/30 bg-card-subtle/60 px-6 py-4 text-sm text-muted-foreground">
+              Loading RMRoads workspace...
             </div>
-            <Button onClick={handleSeedDemoData} disabled={dashboardQuery.isFetching}>
-              {shipments.length ? "Refresh Demo Data" : "Load Demo Workspace"}
-            </Button>
-          </div>
-        </header>
+          ) : null}
 
-        {dashboardQuery.isLoading ? (
-          <Card className="min-w-0 overflow-hidden">
-            <CardContent className="p-6 text-sm text-muted-foreground">Loading RMRoads workspace...</CardContent>
-          </Card>
-        ) : null}
-
-        {dashboardQuery.error ? (
-          <Card className="min-w-0 overflow-hidden">
-            <CardContent className="p-6 text-sm text-red-700 dark:text-red-300">
+          {dashboardQuery.error ? (
+            <div className="border-b border-destructive/40 bg-destructive/10 px-6 py-4 text-sm font-semibold text-destructive">
               Could not load the RMRoads workspace. Check the server logs and database connection.
-            </CardContent>
-          </Card>
-        ) : null}
+            </div>
+          ) : null}
 
-        <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
-          <MetricCard icon={<Truck className="h-5 w-5" />} label="Shipments" value={dashboard?.shipmentCount || 0} />
-          <MetricCard icon={<AlertTriangle className="h-5 w-5" />} label="Open Exceptions" value={dashboard?.exceptionCount || 0} />
-          <MetricCard icon={<ClipboardList className="h-5 w-5" />} label="Critical Risk" value={dashboard?.criticalExceptionCount || 0} />
-          <MetricCard icon={<DollarSign className="h-5 w-5" />} label="Shipment Value" value={currencyFormatter.format(dashboard?.totalValue || 0)} />
-          <MetricCard icon={<CheckCircle2 className="h-5 w-5" />} label="Reviewed" value={dashboard?.reviewedCount || 0} />
-          <MetricCard icon={<CheckCircle2 className="h-5 w-5" />} label="Protected" value={currencyFormatter.format(dashboard?.estimatedProtectedValue || 0)} />
-        </section>
-
-        <Card className="min-w-0 overflow-hidden">
-          <CardHeader>
-            <CardTitle>Shipment CSV Import</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)] md:items-start">
-            <div className="min-w-0">
-              <p className="text-muted-foreground text-sm">
-                Upload the MVP shipment CSV schema. Valid shipments are stored in
-                Postgres and risk scoring recalculates from active events.
+          {!dashboardQuery.isLoading && shipments.length === 0 ? (
+            <div className="m-4 rounded border border-secondary/40 bg-secondary/10 p-5">
+              <h2 className="text-lg font-semibold">No shipment data yet</h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Load the demo workspace or import a shipment CSV to start the workbench.
               </p>
-              {importMessage ? (
-                <p className="mt-3 text-sm font-semibold text-emerald-700 dark:text-emerald-300">{importMessage}</p>
-              ) : null}
-            </div>
-            <div className="grid min-w-0 gap-3">
-              <Button onClick={handleDownloadTemplate} type="button" variant="outline">
-                Download CSV Template
+              <Button className="rmr-label mt-4 rounded bg-secondary text-secondary-foreground hover:bg-secondary-muted" onClick={handleSeedDemoData}>
+                Load Demo Workspace
               </Button>
-              <Input className="min-w-0" accept=".csv,text/csv" disabled={isImporting} onChange={handleCsvImport} type="file" />
             </div>
-            {importErrors.length ? (
-              <div className="min-w-0 md:col-span-2">
-                <ImportErrorsTable errors={importErrors} />
-              </div>
-            ) : null}
-          </CardContent>
-        </Card>
+          ) : null}
 
-        {!dashboardQuery.isLoading && shipments.length === 0 ? (
-          <Card className="min-w-0 overflow-hidden">
-            <CardContent className="flex flex-col gap-4 p-6">
-              <div>
-                <h2 className="text-xl font-bold">No shipment data yet</h2>
-                <p className="text-muted-foreground mt-2 text-sm">
-                  Load the demo workspace or import a shipment CSV to start the workflow.
-                </p>
-              </div>
-              <Button className="w-fit" onClick={handleSeedDemoData}>Load Demo Workspace</Button>
-            </CardContent>
-          </Card>
-        ) : null}
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
+            <WorkbenchExceptionQueue
+              filteredExceptions={filteredExceptions}
+              ownerFilter={ownerFilter}
+              refreshDashboard={refreshDashboard}
+              riskFilter={riskFilter}
+              selectedExceptionId={selectedException?.id || ""}
+              setOwnerFilter={setOwnerFilter}
+              setRiskFilter={setRiskFilter}
+              setSelectedExceptionId={(id: string) => {
+                setSelectedExceptionId(id);
+                setSelectedScenarioAction("");
+                setDecisionNote("");
+                setDecisionError("");
+              }}
+              setStatusFilter={setStatusFilter}
+              statusFilter={statusFilter}
+            />
+            <WorkbenchDetailPanel
+              activeShipment={activeShipment}
+              decisionError={decisionError}
+              decisionNote={decisionNote}
+              handleDecision={handleDecision}
+              recommendation={recommendation}
+              selectedAction={selectedAction}
+              selectedException={selectedException}
+              setDecisionNote={setDecisionNote}
+              setSelectedScenarioAction={setSelectedScenarioAction}
+            />
+          </div>
 
-        <section className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-          <ShipmentsCard
-            filteredShipments={filteredShipments}
-            modeFilter={modeFilter}
-            modes={modes}
-            priorityFilter={priorityFilter}
-            selectedShipmentId={selectedShipmentId}
-            setModeFilter={setModeFilter}
-            setPriorityFilter={setPriorityFilter}
-            setSelectedShipmentId={setSelectedShipmentId}
-            shipmentsLength={shipments.length}
-          />
-          <ShipmentDetailCard shipment={selectedShipment} />
-        </section>
-
-        <section className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-          <DisruptionEventsCard
-            eventForm={eventForm}
-            events={dashboard?.disruptionEvents || []}
-            handleEventSubmit={handleEventSubmit}
-            refreshDashboard={refreshDashboard}
-            setEventForm={setEventForm}
-          />
-          <ExceptionQueueCard
-            exceptionsLength={exceptions.length}
-            filteredExceptions={filteredExceptions}
-            ownerFilter={ownerFilter}
-            refreshDashboard={refreshDashboard}
-            riskFilter={riskFilter}
-            selectedExceptionId={selectedException?.id || ""}
-            setOwnerFilter={setOwnerFilter}
-            setRiskFilter={setRiskFilter}
-            setSelectedExceptionId={(id: string) => {
-              setSelectedExceptionId(id);
-              setSelectedScenarioAction("");
-              setDecisionNote("");
-              setDecisionError("");
-            }}
-            setStatusFilter={setStatusFilter}
-            statusFilter={statusFilter}
-          />
-        </section>
-
-        <section className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-          <RecommendationCard
-            decisionError={decisionError}
-            decisionNote={decisionNote}
-            handleDecision={handleDecision}
-            recommendation={recommendation}
-            selectedAction={selectedAction}
-            selectedException={selectedException}
-            setDecisionNote={setDecisionNote}
-            setSelectedScenarioAction={setSelectedScenarioAction}
-          />
-          <PilotValueCard dashboard={dashboard} />
-        </section>
-
-        <section className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1fr)_minmax(0,1.1fr)]">
-          <AlertSettingsCard
-            message={alertSettingsMessage}
-            onSubmit={handleAlertSettingsSubmit}
-            organization={dashboard?.organization}
-          />
-          <ImportHistoryCard importHistory={dashboard?.importHistory || []} />
-          <AlertLogCard alerts={dashboard?.alerts || []} />
+          <div className="hidden gap-4 border-t border-border/30 bg-background/80 p-4">
+            <AlertSettingsCard
+              message={alertSettingsMessage}
+              onSubmit={handleAlertSettingsSubmit}
+              organization={dashboard?.organization}
+            />
+            <ImportHistoryCard importHistory={dashboard?.importHistory || []} />
+            <AlertLogCard alerts={dashboard?.alerts || []} />
+          </div>
         </section>
       </div>
     </main>
   );
 }
 
-function ShipmentsCard({
-  filteredShipments,
-  modeFilter,
-  modes,
-  priorityFilter,
-  selectedShipmentId,
-  setModeFilter,
-  setPriorityFilter,
-  setSelectedShipmentId,
-  shipmentsLength,
+function WorkbenchSideRail({
+  dashboard,
+  handleCsvImport,
+  handleDownloadTemplate,
+  handleSeedDemoData,
+  importErrors,
+  importMessage,
+  isImporting,
 }: any) {
   return (
-    <Card className="min-w-0 overflow-hidden">
-      <CardHeader>
-        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
-          <div>
-            <CardTitle>Imported Shipments</CardTitle>
-            <p className="text-muted-foreground mt-2 text-sm">
-              {shipmentsLength ? `${filteredShipments.length} of ${shipmentsLength} shipments shown.` : "No CSV imported yet."}
-            </p>
-          </div>
-          <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
-            <NativeSelect label="Priority" value={priorityFilter} onChange={setPriorityFilter} options={["all", "critical", "high", "standard"]} />
-            <NativeSelect label="Mode" value={modeFilter} onChange={setModeFilter} options={["all", ...modes]} />
-          </div>
+    <aside className="hidden w-16 shrink-0 flex-col border-r border-border/30 bg-card-subtle transition-all duration-300 dark:bg-[#010f1f] md:flex lg:w-[var(--rmr-rail-width)]">
+      <div className="hidden border-b border-border/30 p-[var(--rmr-panel-pad)] lg:block">
+        <div className="rmr-label mb-1 flex items-center gap-2 text-secondary">
+          <span className="size-2 rounded-full bg-secondary rmr-glow" />
+          OPS CENTER
         </div>
-      </CardHeader>
-      <CardContent className="min-w-0">
-        <div className="max-w-full overflow-hidden rounded-md border border-border">
-          <table className="w-full table-fixed text-left text-xs sm:text-sm">
-            <thead className="text-muted-foreground border-b text-xs uppercase">
-              <tr>
-                <th className="w-[16%] py-3 pl-2 pr-2 sm:pl-3">Shipment</th>
-                <th className="w-[18%] py-3 pr-2">Customer</th>
-                <th className="w-[26%] py-3 pr-2">Lane</th>
-                <th className="w-[12%] py-3 pr-2">ETA</th>
-                <th className="w-[16%] py-3 pr-2">Risk</th>
-                <th className="w-[12%] py-3 pr-2">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredShipments.map((shipment: any) => (
-                <tr className={selectedShipmentId === shipment.id ? "border-b bg-emerald-50 dark:bg-emerald-950/30" : "border-b last:border-b-0"} key={shipment.id}>
-                  <td className="py-4 pl-2 pr-2 align-top font-semibold [overflow-wrap:anywhere] sm:pl-3">{shipment.id}<span className="block text-xs font-normal text-muted-foreground [overflow-wrap:anywhere]">{shipment.skuGroup}</span></td>
-                  <td className="py-4 pr-2 align-top [overflow-wrap:anywhere]">{shipment.customer}</td>
-                  <td className="py-4 pr-2 align-top [overflow-wrap:anywhere]">{shipment.origin} → {shipment.destination}<span className="block text-xs text-muted-foreground [overflow-wrap:anywhere]">{shipment.mode} · {shipment.carrier}</span></td>
-                  <td className="py-4 pr-2 align-top [overflow-wrap:anywhere]">{shipment.eta}</td>
-                  <td className="py-4 pr-2 align-top"><RiskBadge level={shipment.riskLevel} score={shipment.riskScore} /></td>
-                  <td className="py-4 pr-2 align-top"><Button className="h-auto min-h-8 w-full whitespace-normal px-2 py-1" size="sm" variant="outline" onClick={() => setSelectedShipmentId(shipment.id)}>Detail</Button></td>
-                </tr>
-              ))}
-              {!filteredShipments.length ? <EmptyRow colSpan={6} message="No shipments match the current filters." /> : null}
-            </tbody>
-          </table>
+        <div className="rmr-data text-muted-foreground">
+          Active nodes: {dashboard?.shipmentCount || 0}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+      <div className="flex justify-center border-b border-border/30 p-3 lg:hidden">
+        <span className="mt-1 size-2 rounded-full bg-secondary rmr-glow" />
+      </div>
+
+      <div className="grid gap-2 border-b border-border/30 p-2 lg:p-[var(--rmr-panel-pad)]">
+        <Button className="rmr-label justify-center rounded border-border/50 bg-card-subtle px-2 text-foreground hover:border-secondary hover:bg-muted lg:justify-start" onClick={handleSeedDemoData}>
+          <Plus className="size-4 lg:mr-2" />
+          <span className="hidden lg:inline">{dashboard?.shipmentCount ? "Refresh Simulation" : "New Simulation"}</span>
+        </Button>
+        <Button className="rmr-label justify-center rounded px-2 lg:justify-start" onClick={handleDownloadTemplate} type="button" variant="outline">
+          <FileText className="size-4 lg:mr-2" />
+          <span className="hidden lg:inline">CSV Template</span>
+        </Button>
+        <label className="rmr-label flex h-9 cursor-pointer items-center justify-center rounded border border-border/50 bg-background/70 px-2 text-muted-foreground transition-colors hover:border-secondary hover:text-secondary lg:justify-start lg:px-3">
+          <Database className="size-4 lg:mr-2" />
+          <span className="hidden lg:inline">Import Shipments</span>
+          <Input className="sr-only" accept=".csv,text/csv" disabled={isImporting} onChange={handleCsvImport} type="file" />
+        </label>
+        {importMessage ? <p className="hidden text-xs leading-5 text-secondary lg:block">{importMessage}</p> : null}
+        {importErrors.length ? <div className="hidden lg:block"><ImportErrorsTable errors={importErrors} /></div> : null}
+      </div>
+
+      <nav className="flex-1 overflow-y-auto py-2 rmr-scrollbar">
+        <WorkbenchRailItem active icon={<AlertTriangle className="size-5" />} label="Disruptions" />
+        <WorkbenchRailItem icon={<RouteIcon />} label="Route Opti" />
+        <WorkbenchRailItem icon={<Database className="size-5" />} label="Asset Sync" />
+        <WorkbenchRailItem icon={<ClipboardList className="size-5" />} label="Scenario Lab" />
+        <WorkbenchRailItem icon={<History className="size-5" />} label="Audit Log" />
+      </nav>
+
+      <div className="border-t border-border/30 py-2">
+        <WorkbenchRailItem href={routes.RMRoadsSettingsRoute.to} icon={<Settings className="size-5" />} label="Settings" />
+        <WorkbenchRailItem icon={<FileText className="size-5" />} label="Docs" />
+      </div>
+    </aside>
   );
 }
 
-function ShipmentDetailCard({ shipment }: any) {
-  return (
-    <Card className="min-w-0 overflow-hidden">
-      <CardHeader><CardTitle>Shipment Detail</CardTitle></CardHeader>
-      <CardContent>
-        {shipment ? (
-          <div className="grid gap-4 md:grid-cols-2">
-            <DetailBlock label="Lane" value={`${shipment.origin} → ${shipment.destination}`} detail={`${shipment.mode} via ${shipment.carrier}`} />
-            <DetailBlock label="Business Impact" value={currencyFormatter.format(shipment.value)} detail={`${shipment.priority} priority · ${shipment.destinationLocation}`} />
-            <ListBlock label="Risk Reasons" items={shipment.riskReasons.length ? shipment.riskReasons : ["No active risk reasons."]} />
-            <ListBlock label="Matched Events" items={shipment.matchedEvents.length ? shipment.matchedEvents.map((event: any) => `${event.id} ${event.type}: ${event.reason}`) : ["No matched disruption events."]} />
-          </div>
-        ) : (
-          <p className="text-muted-foreground text-sm">Select a shipment to inspect risk reasons and matched events.</p>
-        )}
-      </CardContent>
-    </Card>
+function WorkbenchRailItem({
+  active = false,
+  href,
+  icon,
+  label,
+}: {
+  active?: boolean;
+  href?: string;
+  icon: ReactNode;
+  label: string;
+}) {
+  const className = active
+    ? "rmr-label flex w-full items-center justify-center gap-3 border-r-2 border-secondary bg-secondary/15 px-3 py-3 text-secondary lg:justify-start lg:px-6"
+    : "rmr-label flex w-full items-center justify-center gap-3 px-3 py-3 text-muted-foreground transition-colors hover:bg-card-subtle/70 hover:text-secondary lg:justify-start lg:px-6";
+  const content = (
+    <>
+      {icon}
+      <span className="hidden lg:inline">{label}</span>
+    </>
+  );
+
+  return href ? (
+    <ReactRouterLink className={className} to={href}>
+      {content}
+    </ReactRouterLink>
+  ) : (
+    <button className={className} type="button">
+      {content}
+    </button>
   );
 }
 
-function DisruptionEventsCard({ eventForm, events, handleEventSubmit, refreshDashboard, setEventForm }: any) {
+function RouteIcon() {
+  return <Truck className="size-5" />;
+}
+
+function WorkbenchContextBar({ dashboard, dashboardQuery, exceptions, handleSeedDemoData }: any) {
+  const criticalCount = exceptions.filter((exception: any) => exception.riskLevel === "critical").length;
+  const actionableCount = exceptions.filter((exception: any) => exception.status === "new" || exception.status === "deferred").length;
+
   return (
-    <Card className="min-w-0 overflow-hidden">
-      <CardHeader><CardTitle>Manual Disruption Events</CardTitle></CardHeader>
-      <CardContent className="grid min-w-0 gap-5">
-        <form className="grid gap-3 md:grid-cols-2" onSubmit={handleEventSubmit}>
-          <TextInput label="Event type" value={eventForm.type} onChange={(type) => setEventForm({ ...eventForm, type })} />
-          <NativeSelect label="Severity" value={eventForm.severity} onChange={(severity) => setEventForm({ ...eventForm, severity })} options={["low", "medium", "high", "critical"]} />
-          <TextInput label="Affected text" value={eventForm.affectedText} onChange={(affectedText) => setEventForm({ ...eventForm, affectedText })} />
-          <TextInput label="Mode" value={eventForm.mode} onChange={(mode) => setEventForm({ ...eventForm, mode })} />
-          <TextInput label="Carrier" value={eventForm.carrier} onChange={(carrier) => setEventForm({ ...eventForm, carrier })} />
-          <TextInput label="Confidence" type="number" value={String(eventForm.confidence)} onChange={(confidence) => setEventForm({ ...eventForm, confidence: Number(confidence) })} />
-          <div className="md:col-span-2"><TextInput label="Source" value={eventForm.source} onChange={(source) => setEventForm({ ...eventForm, source })} /></div>
-          <div className="flex gap-2 md:col-span-2">
-            <Button type="submit">{eventForm.id ? "Update Event" : "Add Event"}</Button>
-            {eventForm.id ? <Button type="button" variant="outline" onClick={() => setEventForm(defaultEventForm)}>Cancel</Button> : null}
-          </div>
-        </form>
-        <div className="max-w-full overflow-hidden rounded-md border border-border">
-          <table className="w-full table-fixed text-left text-xs sm:text-sm">
-            <thead className="text-muted-foreground border-b text-xs uppercase">
-              <tr><th className="w-[24%] py-3 pl-2 pr-2 sm:pl-3">Event</th><th className="w-[26%] py-3 pr-2">Affected</th><th className="w-[16%] py-3 pr-2">Severity</th><th className="w-[14%] py-3 pr-2">Status</th><th className="w-[20%] py-3 pr-2">Actions</th></tr>
-            </thead>
-            <tbody>
-              {events.map((event: any) => (
-                <tr className="border-b last:border-b-0" key={event.id}>
-                  <td className="py-4 pl-2 pr-2 align-top font-semibold [overflow-wrap:anywhere] sm:pl-3">{event.type}<span className="block text-xs font-normal text-muted-foreground [overflow-wrap:anywhere]">{event.source}</span></td>
-                  <td className="py-4 pr-2 align-top [overflow-wrap:anywhere]">{event.affectedText}<span className="block text-xs text-muted-foreground [overflow-wrap:anywhere]">{event.mode || "Any mode"} · {event.carrier || "Any carrier"}</span></td>
-                  <td className="py-4 pr-2 align-top"><RiskBadge level={event.severity} /></td>
-                  <td className="py-4 pr-2 align-top"><StatusBadge status={event.status} /></td>
-                  <td className="py-4 pr-2 align-top">
-                    <div className="flex flex-wrap gap-2">
-                      <Button className="h-auto min-h-8 whitespace-normal px-2 py-1" size="sm" variant="outline" onClick={() => setEventForm(event)}>Edit</Button>
-                      <Button className="h-auto min-h-8 whitespace-normal px-2 py-1" size="sm" variant="outline" onClick={async () => { await toggleRMRoadsDisruptionEventStatus({ id: event.id }); await refreshDashboard(); }}>{event.status === "active" ? "Archive" : "Activate"}</Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {!events.length ? <EmptyRow colSpan={5} message="No disruption events created." /> : null}
-            </tbody>
-          </table>
+    <div className="flex h-[var(--rmr-context-height)] shrink-0 items-center justify-between gap-4 border-b border-border/30 bg-card-subtle/85 px-[var(--rmr-page-pad)] backdrop-blur dark:bg-[#010f1f]/70">
+      <div className="flex min-w-0 flex-wrap items-center gap-4">
+        <h1 className="text-lg font-semibold leading-6">Exception Queue</h1>
+        <div className="hidden h-5 w-px bg-border/60 sm:block" />
+        <div className="rmr-data flex flex-wrap items-center gap-4">
+          <span className="flex items-center gap-2 text-destructive">
+            <span className="size-2 rounded-full bg-destructive" /> {criticalCount} Critical
+          </span>
+          <span className="flex items-center gap-2 text-secondary">
+            <span className="size-2 rounded-full bg-secondary" /> {actionableCount} Actionable
+          </span>
+          <span className="text-muted-foreground">{dashboard?.eventCount || 0} Active Signals</span>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+      <div className="hidden items-center gap-3 lg:flex">
+        <div className="flex items-center gap-5 rounded border border-border/40 bg-card-subtle/60 px-4 py-1">
+          <MiniContextMetric label="Decisions" value={`${dashboard?.reviewedCount || 0}`} />
+          <div className="h-7 w-px bg-border/50" />
+          <MiniContextMetric label="Value Protected" value={currencyFormatter.format(dashboard?.estimatedProtectedValue || 0)} accent />
+          <div className="h-1 w-32 overflow-hidden rounded-full bg-muted">
+            <div className="h-full w-3/5 rounded-full bg-secondary" />
+          </div>
+        </div>
+        <Button className="rmr-label h-8 rounded" disabled={dashboardQuery.isFetching} onClick={handleSeedDemoData} variant="outline">
+          Refresh
+        </Button>
+      </div>
+    </div>
   );
 }
 
-function ExceptionQueueCard(props: any) {
-  const {
-    exceptionsLength,
-    filteredExceptions,
-    ownerFilter,
-    refreshDashboard,
-    riskFilter,
-    selectedExceptionId,
-    setOwnerFilter,
-    setRiskFilter,
-    setSelectedExceptionId,
-    setStatusFilter,
-    statusFilter,
-  } = props;
+function MiniContextMetric({ accent = false, label, value }: { accent?: boolean; label: string; value: string }) {
   return (
-    <Card className="min-w-0 overflow-hidden">
-      <CardHeader>
-        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
-          <div><CardTitle>Exception Queue</CardTitle><p className="text-muted-foreground mt-2 text-sm">{filteredExceptions.length} of {exceptionsLength} exceptions shown.</p></div>
-          <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-3">
-            <NativeSelect label="Owner" value={ownerFilter} onChange={setOwnerFilter} options={["all", "unassigned", ...owners]} />
-            <NativeSelect label="Status" value={statusFilter} onChange={setStatusFilter} options={["all", "new", "approved", "deferred", "rejected"]} />
-            <NativeSelect label="Risk" value={riskFilter} onChange={setRiskFilter} options={["all", "medium", "high", "critical"]} />
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="min-w-0">
-        <div className="max-w-full overflow-hidden rounded-md border border-border">
-          <table className="w-full table-fixed text-left text-xs sm:text-sm">
-            <thead className="text-muted-foreground border-b text-xs uppercase">
-              <tr><th className="w-[14%] py-3 pl-2 pr-2 sm:pl-3">Exception</th><th className="w-[15%] py-3 pr-2">Customer</th><th className="w-[21%] py-3 pr-2">Lane</th><th className="w-[14%] py-3 pr-2">Risk</th><th className="w-[16%] py-3 pr-2">Owner</th><th className="w-[10%] py-3 pr-2">Status</th><th className="w-[10%] py-3 pr-2">Action</th></tr>
-            </thead>
-            <tbody>
-              {filteredExceptions.map((exception: any) => (
-                <tr className={selectedExceptionId === exception.id ? "border-b bg-emerald-50 dark:bg-emerald-950/30" : "border-b last:border-b-0"} key={exception.id}>
-                  <td className="py-4 pl-2 pr-2 align-top font-semibold [overflow-wrap:anywhere] sm:pl-3">{exception.id}<span className="block text-xs font-normal text-muted-foreground [overflow-wrap:anywhere]">{exception.shipmentId}</span></td>
-                  <td className="py-4 pr-2 align-top [overflow-wrap:anywhere]">{exception.customer}</td>
-                  <td className="py-4 pr-2 align-top [overflow-wrap:anywhere]">{exception.lane}</td>
-                  <td className="py-4 pr-2 align-top"><RiskBadge level={exception.riskLevel} score={exception.riskScore} /></td>
-                  <td className="py-4 pr-2 align-top"><OwnerSelect exception={exception} refreshDashboard={refreshDashboard} /></td>
-                  <td className="py-4 pr-2 align-top"><StatusBadge status={exception.status} /></td>
-                  <td className="py-4 pr-2 align-top"><Button className="h-auto min-h-8 w-full whitespace-normal px-2 py-1" size="sm" onClick={() => setSelectedExceptionId(exception.id)}>Review</Button></td>
-                </tr>
-              ))}
-              {!filteredExceptions.length ? <EmptyRow colSpan={7} message="No exceptions match the current filters." /> : null}
-            </tbody>
-          </table>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="grid gap-0.5">
+      <span className="text-[9px] font-bold uppercase tracking-[0.05em] text-muted-foreground">{label}</span>
+      <span className={accent ? "rmr-data text-secondary" : "rmr-data text-foreground"}>{value}</span>
+    </div>
   );
 }
 
-function RecommendationCard({ decisionError, decisionNote, handleDecision, recommendation, selectedAction, selectedException, setDecisionNote, setSelectedScenarioAction }: any) {
+function WorkbenchExceptionQueue({
+  filteredExceptions,
+  ownerFilter,
+  refreshDashboard,
+  riskFilter,
+  selectedExceptionId,
+  setOwnerFilter,
+  setRiskFilter,
+  setSelectedExceptionId,
+  setStatusFilter,
+  statusFilter,
+}: any) {
+  const queueRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!selectedExceptionId || !queueRef.current || !shouldRunMotion()) return;
+    const selectedRow = queueRef.current.querySelector(`[data-exception-id="${selectedExceptionId}"]`);
+    if (!selectedRow) return;
+
+    const animation = animate(selectedRow, {
+      scale: { from: 0.985, to: 1 },
+      x: { from: -8, to: 0 },
+      duration: 460,
+      ease: "outCubic",
+    });
+
+    return () => {
+      animation.cancel();
+    };
+  }, [selectedExceptionId]);
+
   return (
-    <Card className="min-w-0 overflow-hidden">
-      <CardHeader><CardTitle>Recommendation Review</CardTitle></CardHeader>
-      <CardContent>
-        {recommendation && selectedException ? (
-          <div className="grid gap-5">
-            <div><div className="text-muted-foreground text-xs font-semibold uppercase">{recommendation.confidence} confidence</div><h2 className="mt-2 text-xl font-bold">{recommendation.summary}</h2></div>
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {recommendation.scenarios.map((scenario: any) => (
-                <button className={scenario.action === selectedAction ? "min-w-0 rounded-md border border-emerald-300 bg-emerald-50 p-4 text-left text-foreground dark:border-emerald-800 dark:bg-emerald-950/30" : "min-w-0 rounded-md border border-border bg-card p-4 text-left text-foreground hover:bg-muted/40"} key={scenario.action} onClick={() => setSelectedScenarioAction(scenario.action)} type="button">
-                  <div className="flex min-w-0 flex-wrap items-center justify-between gap-3"><strong className="break-words">{scenario.label}</strong>{scenario.recommended ? <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">Recommended</span> : null}</div>
-                  <p className="text-muted-foreground mt-2 text-sm">{scenario.rationale}</p>
-                  <dl className="mt-3 grid grid-cols-2 gap-3 text-sm"><div><dt className="text-muted-foreground">ETA</dt><dd>{scenario.etaImpact}</dd></div><div><dt className="text-muted-foreground">Cost</dt><dd>{scenario.costBand}</dd></div></dl>
-                </button>
-              ))}
+    <section className="flex min-h-0 w-full min-w-0 flex-col overflow-hidden border-r border-border/30 bg-background lg:w-[55%] xl:w-[60%]">
+      <div className="grid grid-cols-1 gap-2 border-b border-border/30 bg-card-subtle/45 p-3 sm:hidden">
+        <NativeSelect label="Owner" value={ownerFilter} onChange={setOwnerFilter} options={["all", "unassigned", ...owners]} />
+        <NativeSelect label="Status" value={statusFilter} onChange={setStatusFilter} options={["all", "new", "approved", "deferred", "rejected"]} />
+        <NativeSelect label="Risk" value={riskFilter} onChange={setRiskFilter} options={["all", "medium", "high", "critical"]} />
+      </div>
+      <div className="hidden grid-cols-12 gap-2 border-b border-border/30 bg-card-subtle/45 px-[var(--rmr-page-pad)] py-2 text-[11px] font-bold uppercase tracking-[0.05em] text-muted-foreground sm:grid">
+        <div className="col-span-3">Shipment / ID</div>
+        <div className="col-span-2">Lane</div>
+        <div className="col-span-3">Risk Factor</div>
+        <div className="col-span-2 text-right">Value At Risk</div>
+        <div className="col-span-2 text-center">Status</div>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto p-2 rmr-scrollbar" ref={queueRef}>
+        {filteredExceptions.map((exception: any) => (
+          <button
+            className={
+              selectedExceptionId === exception.id
+                ? "relative mb-1 grid w-full grid-cols-1 items-start gap-3 rounded border border-secondary bg-primary/5 p-[var(--rmr-queue-row-pad)] text-left shadow-[0_0_15px_rgba(76,215,246,0.1)] sm:grid-cols-12 sm:items-center sm:gap-2"
+                : "mb-1 grid w-full grid-cols-1 items-start gap-3 rounded border border-border/20 bg-card p-[var(--rmr-queue-row-pad)] text-left transition-colors duration-300 ease-out hover:border-border/50 sm:grid-cols-12 sm:items-center sm:gap-2"
+            }
+            key={exception.id}
+            onClick={() => setSelectedExceptionId(exception.id)}
+            data-exception-id={exception.id}
+            type="button"
+          >
+            {selectedExceptionId === exception.id ? <span className="absolute inset-y-0 left-0 w-0.5 bg-secondary" /> : null}
+            <div className="min-w-0 sm:col-span-3">
+              <span className="block truncate text-sm font-semibold">{exception.customer}</span>
+              <span className="rmr-data block truncate text-[11px] text-muted-foreground">{exception.shipmentId}</span>
             </div>
-            <div className="grid gap-2">
-              <Label>Decision note</Label>
-              <Textarea value={decisionNote} onChange={(event) => setDecisionNote(event.currentTarget.value)} placeholder="Add the operational reason for the decision." />
-              {decisionError ? <p className="text-sm font-semibold text-red-700 dark:text-red-300">{decisionError}</p> : null}
+            <div className="rmr-data min-w-0 sm:col-span-2">
+              <span className="block truncate text-foreground">{exception.lane}</span>
+              <span className="block truncate text-[10px] text-muted-foreground">{exception.priority}</span>
             </div>
-            <div className="flex flex-wrap gap-2"><Button onClick={() => handleDecision("approved")}>Approve</Button><Button variant="outline" onClick={() => handleDecision("deferred")}>Defer</Button><Button variant="destructive" onClick={() => handleDecision("rejected")}>Reject</Button></div>
-          </div>
-        ) : <p className="text-muted-foreground text-sm">Select an exception to generate response scenarios.</p>}
-      </CardContent>
-    </Card>
+            <div className="min-w-0 sm:col-span-3">
+              <span className={exception.riskLevel === "critical" ? "block truncate text-sm font-medium text-destructive" : "block truncate text-sm font-medium text-foreground"}>
+                {exception.reason}
+              </span>
+              <span className="rmr-label block truncate text-[9px] text-muted-foreground">
+                {exception.owner || "Unassigned"}
+              </span>
+            </div>
+            <div className="rmr-data text-left sm:col-span-2 sm:text-right">{currencyFormatter.format(exception.value || 0)}</div>
+            <div className="flex justify-start sm:col-span-2 sm:justify-center">
+              <RiskBadge level={exception.riskLevel} score={exception.riskScore} />
+            </div>
+          </button>
+        ))}
+        {!filteredExceptions.length ? (
+          <div className="p-8 text-center text-sm text-muted-foreground">No exceptions match the current filters.</div>
+        ) : null}
+      </div>
+    </section>
   );
 }
 
-function PilotValueCard({ dashboard }: any) {
+function WorkbenchDetailPanel({
+  activeShipment,
+  decisionError,
+  decisionNote,
+  handleDecision,
+  recommendation,
+  selectedAction,
+  selectedException,
+  setDecisionNote,
+  setSelectedScenarioAction,
+}: any) {
+  const detailRef = useRef<HTMLElement | null>(null);
+  const scenarioRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!selectedException?.id || !detailRef.current || !shouldRunMotion()) return;
+    const elements = detailRef.current.querySelectorAll("[data-rmr-detail-animate]");
+    if (!elements.length) return;
+
+    const animation = animate(elements, {
+      opacity: { from: 0, to: 1 },
+      y: { from: 10, to: 0 },
+      duration: 520,
+      delay: (_target: Element, index: number) => index * 55,
+      ease: "outCubic",
+    });
+
+    return () => {
+      animation.cancel();
+    };
+  }, [selectedException?.id]);
+
+  useEffect(() => {
+    if (!selectedAction || !scenarioRef.current || !shouldRunMotion()) return;
+    const selectedScenario = scenarioRef.current.querySelector(`[data-scenario-action="${selectedAction}"]`);
+    if (!selectedScenario) return;
+
+    const animation = animate(selectedScenario, {
+      scale: { from: 0.975, to: 1 },
+      x: { from: 10, to: 0 },
+      duration: 460,
+      ease: "outCubic",
+    });
+
+    return () => {
+      animation.cancel();
+    };
+  }, [selectedAction]);
+
   return (
-    <Card className="min-w-0 overflow-hidden">
-      <CardHeader><CardTitle>Pilot Value Dashboard</CardTitle></CardHeader>
-      <CardContent className="grid gap-4">
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-          <MiniMetric label="Reviewed" value={dashboard?.reviewedCount || 0} />
-          <MiniMetric label="Approved" value={dashboard?.approvedCount || 0} />
-          <MiniMetric label="Deferred" value={dashboard?.deferredCount || 0} />
-          <MiniMetric label="Rejected" value={dashboard?.rejectedCount || 0} />
-          <MiniMetric label="Avg Risk" value={dashboard?.averageRiskScore || 0} />
-        </div>
-        <div className="max-w-full overflow-hidden rounded-md border border-border">
-          <table className="w-full table-fixed text-left text-xs sm:text-sm">
-            <thead className="text-muted-foreground border-b text-xs uppercase"><tr><th className="w-[17%] py-3 pl-2 pr-2 sm:pl-3">Decision</th><th className="w-[18%] py-3 pr-2">Customer</th><th className="w-[14%] py-3 pr-2">Action</th><th className="w-[15%] py-3 pr-2">Owner</th><th className="w-[16%] py-3 pr-2">Protected</th><th className="w-[20%] py-3 pr-2">Note</th></tr></thead>
-            <tbody>{(dashboard?.decisions || []).map((decision: any) => <tr className="border-b last:border-b-0" key={decision.id}><td className="py-4 pl-2 pr-2 align-top sm:pl-3"><StatusBadge status={decision.status} /><span className="block text-xs text-muted-foreground [overflow-wrap:anywhere]">{formatDateTime(decision.decidedAt)}</span></td><td className="py-4 pr-2 align-top [overflow-wrap:anywhere]">{decision.customer}<span className="block text-xs text-muted-foreground [overflow-wrap:anywhere]">{decision.shipmentId}</span></td><td className="py-4 pr-2 align-top [overflow-wrap:anywhere]">{formatAction(decision.scenarioAction)}</td><td className="py-4 pr-2 align-top [overflow-wrap:anywhere]">{decision.owner || "Unassigned"}</td><td className="py-4 pr-2 align-top [overflow-wrap:anywhere]">{currencyFormatter.format(decision.estimatedProtectedValue)}</td><td className="py-4 pr-2 align-top [overflow-wrap:anywhere]">{decision.note || "-"}</td></tr>)}{!dashboard?.decisions?.length ? <EmptyRow colSpan={6} message="No planner decisions yet." /> : null}</tbody>
-          </table>
-        </div>
-      </CardContent>
-    </Card>
+    <aside className="relative flex min-h-0 w-full min-w-0 flex-col gap-[var(--rmr-detail-gap)] overflow-y-auto bg-card-subtle/80 p-[var(--rmr-page-pad)] rmr-scrollbar dark:bg-[#010f1f] lg:w-[45%] xl:w-[40%]" ref={detailRef}>
+      <div className="pointer-events-none absolute right-0 top-0 size-64 rounded-full bg-secondary/5 blur-[80px]" />
+      {selectedException && activeShipment ? (
+        <>
+          <div className="flex items-start justify-between gap-4" data-rmr-detail-animate>
+            <div className="min-w-0">
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <h2 className="m-0 truncate text-2xl font-semibold">{selectedException.shipmentId}</h2>
+                <RiskBadge level={selectedException.riskLevel} score={selectedException.riskScore} />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {activeShipment.customer} · {activeShipment.mode} · Carrier: {activeShipment.carrier}
+              </p>
+            </div>
+            <Button className="size-8 rounded p-0" type="button" variant="outline">
+              <FileText className="size-4" />
+            </Button>
+          </div>
+
+          <div className="rmr-stream min-h-[5.75rem] overflow-hidden rounded border border-border/40 bg-card-subtle/70 p-[var(--rmr-panel-pad)]" data-rmr-detail-animate>
+            <div className="grid h-full min-h-[4.25rem] grid-cols-[minmax(0,1fr)_minmax(6.5rem,1.05fr)_minmax(0,1fr)] items-center gap-3">
+              <RouteStop label="Origin" code={activeShipment.origin} />
+              <div className="flex min-w-0 flex-col items-center justify-center gap-2 px-1">
+                <div className="relative h-px w-full min-w-0 border-t border-dashed border-border/70">
+                  <Truck className="absolute left-1/2 top-1/2 size-6 -translate-x-1/2 -translate-y-1/2 rounded-full border border-border/50 bg-background p-1 text-secondary dark:bg-card-subtle" />
+                </div>
+                <span className="rmr-label max-w-full truncate text-center text-muted-foreground">ETA {activeShipment.eta}</span>
+              </div>
+              <RouteStop alignRight label="Destination" code={activeShipment.destination} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-[var(--rmr-detail-gap)] sm:grid-cols-2" data-rmr-detail-animate>
+            <DetailBlock danger label="Risk Factor" value={selectedException.reason} detail={selectedException.lane} />
+            <DetailBlock label="Value at Risk" value={currencyFormatter.format(activeShipment.value)} detail={`${activeShipment.priority} priority shipment`} />
+          </div>
+
+          <div className="mt-1 flex flex-1 flex-col gap-2" data-rmr-detail-animate ref={scenarioRef}>
+            <div className="rmr-label flex items-center gap-2 text-secondary">
+              <CheckCircle2 className="size-[18px]" /> AI Scenario Engine
+            </div>
+            {recommendation?.scenarios.map((scenario: any) => (
+              <button
+                className={
+                  scenario.action === selectedAction
+                    ? "relative overflow-hidden rounded border border-secondary bg-primary/5 p-[var(--rmr-scenario-pad)] pl-5 text-left shadow-[0_0_15px_rgba(76,215,246,0.1)]"
+                    : "rounded border border-border/30 bg-card p-[var(--rmr-scenario-pad)] text-left transition-colors duration-300 ease-out hover:border-border/60"
+                }
+                key={scenario.action}
+                onClick={() => setSelectedScenarioAction(scenario.action)}
+                data-scenario-action={scenario.action}
+                type="button"
+              >
+                {scenario.action === selectedAction ? (
+                  <span className="absolute inset-y-0 left-0 w-[3px] bg-secondary rmr-glow" />
+                ) : null}
+                {scenario.recommended ? (
+                  <span className="rmr-label absolute right-3 top-3 rounded bg-secondary px-2 py-0.5 text-[9px] text-secondary-foreground">Recommended</span>
+                ) : null}
+                <div className="text-sm font-semibold text-foreground">
+                  {scenario.label}
+                </div>
+                <div className="mt-2 flex flex-wrap gap-5 rmr-data">
+                  <span className="text-destructive">Cost: {scenario.costBand}</span>
+                  <span className="text-secondary">ETA: {scenario.etaImpact}</span>
+                </div>
+                <p className="mt-3 border-t border-border/30 pt-3 text-xs leading-5 text-muted-foreground">
+                  {scenario.rationale}
+                </p>
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-auto grid gap-2 border-t border-border/30 pt-4" data-rmr-detail-animate>
+            <Label className="rmr-label text-muted-foreground">Decision note</Label>
+            <Textarea className="min-h-16" value={decisionNote} onChange={(event) => setDecisionNote(event.currentTarget.value)} placeholder="Add the operational reason for the decision." />
+            {decisionError ? <p className="text-sm font-semibold text-destructive">{decisionError}</p> : null}
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto]" data-rmr-detail-animate>
+            <Button className="rmr-label rounded bg-secondary text-secondary-foreground hover:bg-secondary-muted" onClick={() => handleDecision("approved")}>
+              Execute Recommendation
+            </Button>
+            <Button className="rmr-label rounded" variant="outline" onClick={() => handleDecision("deferred")}>Defer</Button>
+            <Button className="rmr-label size-10 rounded p-0" variant="destructive" onClick={() => handleDecision("rejected")} title="Reject AI suggestion">
+              <X className="size-4" />
+            </Button>
+          </div>
+        </>
+      ) : (
+        <p className="text-sm text-muted-foreground">Select an exception to inspect risk and compare scenarios.</p>
+      )}
+    </aside>
+  );
+}
+
+function RouteStop({ alignRight = false, code, label }: { alignRight?: boolean; code: string; label: string }) {
+  return (
+    <div className={alignRight ? "min-w-0 overflow-hidden text-right" : "min-w-0 overflow-hidden"}>
+      <div className="rmr-label mb-1 truncate text-muted-foreground">{label}</div>
+      <div className="rmr-data text-sm font-semibold leading-5 text-foreground [overflow-wrap:anywhere] xl:text-base">{code}</div>
+    </div>
   );
 }
 
@@ -680,7 +737,7 @@ function ImportHistoryCard({ importHistory }: any) {
 }
 
 function AlertLogCard({ alerts }: any) {
-  return <SimpleTableCard title="Critical Alert Log" empty="No critical alerts generated yet." headers={["Created", "Sent", "Shipment", "Risk", "Message"]} rows={alerts.map((alert: any) => [formatDateTime(alert.createdAt), alert.sentAt ? formatDateTime(alert.sentAt) : "Not sent", alert.shipmentId, `${alert.riskLevel} ${alert.riskScore}/100`, alert.message])} />;
+  return <SimpleTableCard title="Critical Alert Log" empty="No critical alerts generated yet." headers={["Created", "Delivery", "Shipment", "Risk", "Message"]} rows={alerts.map((alert: any) => [formatDateTime(alert.createdAt), alert.sentAt ? `${alert.deliveryStatus} ${formatDateTime(alert.sentAt)}` : alert.deliveryStatus || "Pending", alert.shipmentId, `${alert.riskLevel} ${alert.riskScore}/100`, alert.message])} />;
 }
 
 function ImportErrorsTable({ errors }: { errors: ImportError[] }) {
@@ -713,16 +770,14 @@ function ImportErrorsTable({ errors }: { errors: ImportError[] }) {
   );
 }
 
-function MetricCard({ icon, label, value }: { icon: ReactNode; label: string; value: string | number }) {
-  return <Card className="min-w-0 overflow-hidden"><CardContent className="flex min-w-0 items-center justify-between gap-4 p-5"><div className="min-w-0"><div className="text-muted-foreground text-sm font-semibold">{label}</div><div className="mt-2 break-words text-2xl font-bold leading-tight 2xl:text-[1.7rem]">{value}</div></div><div className="shrink-0 rounded-md bg-emerald-50 p-3 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200">{icon}</div></CardContent></Card>;
-}
-
-function MiniMetric({ label, value }: { label: string; value: string | number }) {
-  return <div className="min-w-0 rounded-md border border-border bg-card-subtle p-3 text-card-subtle-foreground"><div className="text-muted-foreground text-xs font-semibold">{label}</div><div className="mt-1 break-words text-xl font-bold leading-tight">{value}</div></div>;
-}
-
-function DetailBlock({ detail, label, value }: { detail: string; label: string; value: string }) {
-  return <div className="min-w-0 rounded-md border border-border bg-card-subtle p-4 text-card-subtle-foreground"><div className="text-muted-foreground text-xs font-semibold uppercase">{label}</div><strong className="mt-2 block break-words">{value}</strong><p className="text-muted-foreground mt-2 break-words text-sm">{detail}</p></div>;
+function DetailBlock({ danger = false, detail, label, value }: { danger?: boolean; detail: string; label: string; value: string }) {
+  return (
+    <div className={danger ? "min-w-0 rounded border border-destructive/40 border-t-2 border-t-destructive bg-card-subtle/70 p-[var(--rmr-panel-pad)] text-card-subtle-foreground shadow-[0_4px_24px_rgba(255,180,171,0.05)]" : "min-w-0 rounded border border-border/40 bg-card-subtle/70 p-[var(--rmr-panel-pad)] text-card-subtle-foreground"}>
+      <div className={danger ? "rmr-label text-destructive" : "rmr-label text-muted-foreground"}>{label}</div>
+      <strong className="mt-2 block break-words text-sm">{value}</strong>
+      <p className="mt-2 break-words text-xs leading-5 text-muted-foreground">{detail}</p>
+    </div>
+  );
 }
 
 function ListBlock({ items, label }: { items: string[]; label: string }) {
@@ -737,18 +792,9 @@ function NativeSelect({ label, onChange, options, value }: { label: string; onCh
   return <label className="grid min-w-0 gap-1 text-xs font-semibold text-muted-foreground">{label}<select className="h-9 min-w-0 rounded-md border border-input bg-background px-3 text-sm text-foreground" value={value} onChange={(event) => onChange(event.currentTarget.value)}>{options.map((option) => <option key={option} value={option}>{formatAction(option)}</option>)}</select></label>;
 }
 
-function TextInput({ label, onChange, type = "text", value }: { label: string; onChange: (value: string) => void; type?: string; value: string }) {
-  return <label className="grid gap-1 text-xs font-semibold text-muted-foreground">{label}<Input type={type} value={value} onChange={(event) => onChange(event.currentTarget.value)} /></label>;
-}
-
 function RiskBadge({ level, score }: { level: RiskLevel | DisruptionSeverity; score?: number }) {
   const className = level === "critical" ? "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200" : level === "high" ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200" : level === "medium" ? "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200" : "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100";
   return <span className={`inline-flex max-w-full rounded-full px-2 py-1 text-xs font-semibold leading-tight [overflow-wrap:anywhere] ${className}`}>{level}{typeof score === "number" ? ` ${score}/100` : ""}</span>;
-}
-
-function StatusBadge({ status }: { status: ExceptionStatus | DisruptionStatus }) {
-  const className = status === "approved" || status === "active" || status === "new" ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200" : status === "deferred" ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200" : "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200";
-  return <span className={`inline-flex max-w-full rounded-full px-2 py-1 text-xs font-semibold leading-tight [overflow-wrap:anywhere] ${className}`}>{status}</span>;
 }
 
 function EmptyRow({ colSpan, message }: { colSpan: number; message: string }) {

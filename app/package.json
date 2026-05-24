@@ -1,6 +1,9 @@
 {
   "name": "opensaas",
   "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
   "workspaces": [
     ".wasp/out/*",
     ".wasp/out/sdk/wasp"
@@ -27,6 +30,7 @@
     "@radix-ui/react-toast": "^1.2.14",
     "@tailwindcss/forms": "^0.5.11",
     "@tailwindcss/typography": "^0.5.19",
+    "animejs": "^4.4.1",
     "apexcharts": "5.10.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

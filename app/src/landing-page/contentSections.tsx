@@ -1,4 +1,4 @@
-import publicBanner from "../client/static/public-banner.webp";
+import publicBanner from "../client/static/logo.webp";
 import { BlogUrl } from "../shared/common";
 import type { GridFeature } from "./components/FeaturesGrid";
 

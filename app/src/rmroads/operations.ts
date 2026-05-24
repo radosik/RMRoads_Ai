@@ -2,13 +2,18 @@ import { HttpError } from "wasp/server";
 import { emailSender } from "wasp/server/email";
 import type {
   AssignRMRoadsExceptionOwner,
+  CancelRMRoadsWorkspaceInvitation,
+  CreateRMRoadsWorkspaceInvitation,
   DecideRMRoadsException,
   GetRMRoadsDashboard,
+  GetRMRoadsTenantHealth,
+  GetRMRoadsWorkspaceSettings,
   ImportRMRoadsShipmentCsv,
   UpsertRMRoadsDisruptionEvent,
   SeedRMRoadsDemoData,
   ToggleRMRoadsDisruptionEventStatus,
   UpdateRMRoadsAlertSettings,
+  UpdateRMRoadsWorkspaceSettings,
 } from "wasp/server/operations";
 import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
@@ -21,6 +26,12 @@ import {
 import { generateRecommendation } from "./domain/recommendations";
 import { createDefaultEvents, scoreShipments } from "./domain/risk";
 import { sampleShipments } from "./domain/sampleData";
+import {
+  canEnableCriticalAlerts,
+  isValidInviteEmail,
+  normalizeInviteEmail,
+  parseAlertRecipients,
+} from "./domain/workspaceReadiness";
 import type {
   CriticalAlertEntry,
   DecisionLogEntry,
@@ -41,6 +52,10 @@ type RMRoadsDashboard = {
     slug: string;
     alertEmailsEnabled: boolean;
     alertRecipients: string[];
+    pilotMode: string;
+    pilotSuccessMetric: string;
+    pilotTargetDecisionHours: number;
+    securityReviewCompleted: boolean;
   } | null;
   shipmentCount: number;
   eventCount: number;
@@ -67,6 +82,49 @@ type ShipmentCsvImportResult = {
   duplicateCount: number;
   errors: ImportError[];
   dashboard: RMRoadsDashboard;
+};
+
+type RMRoadsWorkspaceSettings = {
+  organization: NonNullable<RMRoadsDashboard["organization"]>;
+  members: {
+    id: string;
+    role: string;
+    createdAt: string;
+    email: string;
+    username: string;
+  }[];
+  invitations: {
+    id: string;
+    email: string;
+    role: string;
+    status: string;
+    createdAt: string;
+    acceptedAt: string;
+    cancelledAt: string;
+    sentBy: string;
+  }[];
+  manualInviteEmail: string;
+};
+
+type RMRoadsTenantHealthRow = {
+  id: string;
+  name: string;
+  slug: string;
+  createdAt: string;
+  pilotMode: string;
+  pilotSuccessMetric: string;
+  pilotTargetDecisionHours: number;
+  securityReviewCompleted: boolean;
+  alertEmailsEnabled: boolean;
+  alertRecipientCount: number;
+  pendingInvitationCount: number;
+  memberCount: number;
+  importCount: number;
+  shipmentCount: number;
+  exceptionCount: number;
+  decisionCount: number;
+  alertCount: number;
+  latestImportAt: string;
 };
 
 const importShipmentCsvSchema = z.object({
@@ -104,6 +162,23 @@ const decideExceptionSchema = z.object({
 const updateAlertSettingsSchema = z.object({
   alertEmailsEnabled: z.boolean(),
   alertRecipients: z.string().max(2000).default(""),
+});
+
+const updateWorkspaceSettingsSchema = updateAlertSettingsSchema.extend({
+  name: z.string().trim().min(2).max(120),
+  pilotMode: z.enum(["demo", "paid_pilot", "production_readiness"]).default("demo"),
+  pilotSuccessMetric: z.string().trim().min(5).max(280),
+  pilotTargetDecisionHours: z.number().int().min(1).max(168),
+  securityReviewCompleted: z.boolean(),
+});
+
+const createWorkspaceInvitationSchema = z.object({
+  email: z.string().trim().min(3).max(180),
+  role: z.enum(["admin", "planner", "viewer"]).default("planner"),
+});
+
+const cancelWorkspaceInvitationSchema = z.object({
+  invitationId: z.string().min(1),
 });
 
 export const getRMRoadsDashboard: GetRMRoadsDashboard<
@@ -218,6 +293,114 @@ export const getRMRoadsDashboard: GetRMRoadsDashboard<
     alerts: dbAlerts.map(mapCriticalAlertFromDb),
     ...decisionMetrics,
   };
+};
+
+export const getRMRoadsWorkspaceSettings: GetRMRoadsWorkspaceSettings<
+  void,
+  RMRoadsWorkspaceSettings
+> = async (_args, context) => {
+  if (!context.user) throw new HttpError(401);
+
+  const organization = await requireWorkspaceAdmin(context);
+  const members = await context.entities.OrganizationMember.findMany({
+    where: { organizationId: organization.id },
+    include: { user: true },
+    orderBy: { createdAt: "asc" },
+  });
+  const invitations = await context.entities.WorkspaceInvitation.findMany({
+    where: { organizationId: organization.id },
+    include: { sentBy: true },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return {
+    organization,
+    members: members.map((member: any) => ({
+      id: member.id,
+      role: member.role,
+      createdAt: member.createdAt.toISOString(),
+      email: member.user.email || "",
+      username: member.user.username || "",
+    })),
+    invitations: invitations.map((invitation: any) => ({
+      id: invitation.id,
+      email: invitation.email,
+      role: invitation.role,
+      status: invitation.status,
+      createdAt: invitation.createdAt.toISOString(),
+      acceptedAt: invitation.acceptedAt ? invitation.acceptedAt.toISOString() : "",
+      cancelledAt: invitation.cancelledAt ? invitation.cancelledAt.toISOString() : "",
+      sentBy: invitation.sentBy.email || invitation.sentBy.username || "Workspace admin",
+    })),
+    manualInviteEmail: "support@rmroads.ai",
+  };
+};
+
+export const getRMRoadsTenantHealth: GetRMRoadsTenantHealth<
+  void,
+  RMRoadsTenantHealthRow[]
+> = async (_args, context) => {
+  if (!context.user) throw new HttpError(401);
+  if (!context.user.isAdmin) throw new HttpError(403);
+
+  const organizations = await context.entities.Organization.findMany({
+    orderBy: { createdAt: "desc" },
+    include: {
+      _count: {
+        select: {
+          members: true,
+          shipmentImports: true,
+          shipments: true,
+          shipmentExceptions: true,
+          criticalAlerts: true,
+          workspaceInvitations: {
+            where: { status: "pending" },
+          },
+        },
+      },
+    },
+  });
+
+  const rows = await Promise.all(
+    organizations.map(async (organization: any) => {
+      const [decisionCount, latestImport] = await Promise.all([
+        context.entities.ExceptionDecision.count({
+          where: {
+            shipmentException: {
+              organizationId: organization.id,
+            },
+          },
+        }),
+        context.entities.ShipmentImport.findFirst({
+          where: { organizationId: organization.id },
+          orderBy: { createdAt: "desc" },
+        }),
+      ]);
+
+      return {
+        id: organization.id,
+        name: organization.name,
+        slug: organization.slug,
+        createdAt: organization.createdAt.toISOString(),
+        pilotMode: organization.pilotMode,
+        pilotSuccessMetric: organization.pilotSuccessMetric,
+        pilotTargetDecisionHours: organization.pilotTargetDecisionHours,
+        securityReviewCompleted: organization.securityReviewCompleted,
+        alertEmailsEnabled: organization.alertEmailsEnabled,
+        alertRecipientCount: parseAlertRecipients(organization.alertRecipients).length,
+        pendingInvitationCount: organization._count.workspaceInvitations,
+        memberCount: organization._count.members,
+        importCount: organization._count.shipmentImports,
+        shipmentCount: organization._count.shipments,
+        exceptionCount: organization._count.shipmentExceptions,
+        decisionCount,
+        alertCount: organization._count.criticalAlerts,
+        latestImportAt: latestImport?.createdAt?.toISOString() || "",
+      };
+    }),
+  );
+
+  return rows;
 };
 
 export const seedRMRoadsDemoData: SeedRMRoadsDemoData<
@@ -498,7 +681,7 @@ export const updateRMRoadsAlertSettings: UpdateRMRoadsAlertSettings<
   const args = ensureArgsSchemaOrThrowHttpError(updateAlertSettingsSchema, rawArgs);
   const organization = await getOrCreateUserOrganization(context);
   const recipients = parseAlertRecipients(args.alertRecipients);
-  if (args.alertEmailsEnabled && recipients.length === 0) {
+  if (!canEnableCriticalAlerts(args.alertEmailsEnabled, recipients)) {
     throw new HttpError(400, "At least one alert recipient is required before enabling email alerts.");
   }
 
@@ -513,11 +696,111 @@ export const updateRMRoadsAlertSettings: UpdateRMRoadsAlertSettings<
   return getRMRoadsDashboard(undefined, context);
 };
 
-async function getUserOrganization(context: any) {
-  const membership = await context.entities.OrganizationMember.findFirst({
-    where: { userId: context.user.id },
-    include: { organization: true },
+export const updateRMRoadsWorkspaceSettings: UpdateRMRoadsWorkspaceSettings<
+  z.infer<typeof updateWorkspaceSettingsSchema>,
+  RMRoadsWorkspaceSettings
+> = async (rawArgs, context) => {
+  if (!context.user) throw new HttpError(401);
+
+  const args = ensureArgsSchemaOrThrowHttpError(updateWorkspaceSettingsSchema, rawArgs);
+  const organization = await requireWorkspaceAdmin(context);
+  const recipients = parseAlertRecipients(args.alertRecipients);
+  if (!canEnableCriticalAlerts(args.alertEmailsEnabled, recipients)) {
+    throw new HttpError(400, "At least one alert recipient is required before enabling email alerts.");
+  }
+
+  await context.entities.Organization.update({
+    where: { id: organization.id },
+    data: {
+      name: args.name,
+      alertEmailsEnabled: args.alertEmailsEnabled,
+      alertRecipients: recipients.join(", "),
+      pilotMode: args.pilotMode,
+      pilotSuccessMetric: args.pilotSuccessMetric,
+      pilotTargetDecisionHours: args.pilotTargetDecisionHours,
+      securityReviewCompleted: args.securityReviewCompleted,
+    },
   });
+
+  return getRMRoadsWorkspaceSettings(undefined, context);
+};
+
+export const createRMRoadsWorkspaceInvitation: CreateRMRoadsWorkspaceInvitation<
+  z.infer<typeof createWorkspaceInvitationSchema>,
+  RMRoadsWorkspaceSettings
+> = async (rawArgs, context) => {
+  if (!context.user) throw new HttpError(401);
+
+  const args = ensureArgsSchemaOrThrowHttpError(createWorkspaceInvitationSchema, rawArgs);
+  const organization = await requireWorkspaceAdmin(context);
+  const email = normalizeInviteEmail(args.email);
+  if (!isValidInviteEmail(email)) {
+    throw new HttpError(400, "A valid teammate email is required.");
+  }
+
+  const existingMember = await context.entities.OrganizationMember.findFirst({
+    where: {
+      organizationId: organization.id,
+      user: { email },
+    },
+  });
+  if (existingMember) {
+    throw new HttpError(400, "This user is already a workspace member.");
+  }
+
+  await context.entities.WorkspaceInvitation.upsert({
+    where: {
+      organizationId_email: {
+        organizationId: organization.id,
+        email,
+      },
+    },
+    create: {
+      organization: { connect: { id: organization.id } },
+      sentBy: { connect: { id: context.user.id } },
+      email,
+      role: args.role,
+      status: "pending",
+    },
+    update: {
+      role: args.role,
+      status: "pending",
+      cancelledAt: null,
+    },
+  });
+
+  return getRMRoadsWorkspaceSettings(undefined, context);
+};
+
+export const cancelRMRoadsWorkspaceInvitation: CancelRMRoadsWorkspaceInvitation<
+  z.infer<typeof cancelWorkspaceInvitationSchema>,
+  RMRoadsWorkspaceSettings
+> = async (rawArgs, context) => {
+  if (!context.user) throw new HttpError(401);
+
+  const { invitationId } = ensureArgsSchemaOrThrowHttpError(cancelWorkspaceInvitationSchema, rawArgs);
+  const organization = await requireWorkspaceAdmin(context);
+  const invitation = await context.entities.WorkspaceInvitation.findFirst({
+    where: {
+      id: invitationId,
+      organizationId: organization.id,
+    },
+  });
+  if (!invitation) throw new HttpError(404, "Invitation not found.");
+
+  await context.entities.WorkspaceInvitation.update({
+    where: { id: invitation.id },
+    data: {
+      status: "cancelled",
+      cancelledAt: new Date(),
+    },
+  });
+
+  return getRMRoadsWorkspaceSettings(undefined, context);
+};
+
+async function getUserOrganization(context: any) {
+  const membership = await getUserOrganizationMembership(context);
 
   return membership?.organization
     ? {
@@ -526,8 +809,29 @@ async function getUserOrganization(context: any) {
         slug: membership.organization.slug,
         alertEmailsEnabled: membership.organization.alertEmailsEnabled,
         alertRecipients: parseAlertRecipients(membership.organization.alertRecipients),
+        pilotMode: membership.organization.pilotMode,
+        pilotSuccessMetric: membership.organization.pilotSuccessMetric,
+        pilotTargetDecisionHours: membership.organization.pilotTargetDecisionHours,
+        securityReviewCompleted: membership.organization.securityReviewCompleted,
       }
     : null;
+}
+
+async function getUserOrganizationMembership(context: any) {
+  return context.entities.OrganizationMember.findFirst({
+    where: { userId: context.user.id },
+    include: { organization: true },
+  });
+}
+
+async function requireWorkspaceAdmin(context: any) {
+  const organization = await getOrCreateUserOrganization(context);
+  const membership = await getUserOrganizationMembership(context);
+  if (!membership || membership.organizationId !== organization.id || membership.role !== "admin") {
+    throw new HttpError(403, "Only workspace admins can update workspace settings.");
+  }
+
+  return organization;
 }
 
 async function getOrCreateUserOrganization(context: any) {
@@ -555,6 +859,10 @@ async function getOrCreateUserOrganization(context: any) {
     slug: organization.slug,
     alertEmailsEnabled: organization.alertEmailsEnabled,
     alertRecipients: parseAlertRecipients(organization.alertRecipients),
+    pilotMode: organization.pilotMode,
+    pilotSuccessMetric: organization.pilotSuccessMetric,
+    pilotTargetDecisionHours: organization.pilotTargetDecisionHours,
+    securityReviewCompleted: organization.securityReviewCompleted,
   };
 }
 
@@ -700,19 +1008,34 @@ async function syncCriticalAlerts(
       });
 
       if (!alert.sentAt && organization.alertEmailsEnabled && organization.alertRecipients.length > 0) {
-        await sendCriticalAlertEmail(organization.alertRecipients, exception, message);
-        await context.entities.CriticalAlert.update({
-          where: {
-            organizationId_signature: {
-              organizationId: organization.id,
-              signature,
+        try {
+          await sendCriticalAlertEmail(organization.alertRecipients, exception, message);
+          await context.entities.CriticalAlert.update({
+            where: {
+              organizationId_signature: {
+                organizationId: organization.id,
+                signature,
+              },
             },
-          },
-          data: {
-            sentAt: new Date(),
-            providerMessageId: "wasp-email-sender",
-          },
-        });
+            data: {
+              sentAt: new Date(),
+              providerMessageId: "wasp-email-sender",
+            },
+          });
+        } catch (error) {
+          console.error("Failed to send RMRoads critical alert email", error);
+          await context.entities.CriticalAlert.update({
+            where: {
+              organizationId_signature: {
+                organizationId: organization.id,
+                signature,
+              },
+            },
+            data: {
+              providerMessageId: "email-send-failed",
+            },
+          });
+        }
       }
     }),
   );
@@ -745,17 +1068,6 @@ async function sendCriticalAlertEmail(
           <p>Open the RMRoads AI workspace and review the exception queue.</p>
         `,
       }),
-    ),
-  );
-}
-
-function parseAlertRecipients(value: string | null | undefined) {
-  return Array.from(
-    new Set(
-      (value || "")
-        .split(/[\n,;]/)
-        .map((recipient) => recipient.trim().toLowerCase())
-        .filter((recipient) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)),
     ),
   );
 }
@@ -797,6 +1109,7 @@ function mapCriticalAlertFromDb(alert: any): CriticalAlertEntry {
     id: alert.id,
     createdAt: alert.createdAt.toISOString(),
     sentAt: alert.sentAt ? alert.sentAt.toISOString() : "",
+    deliveryStatus: alert.providerMessageId === "email-send-failed" ? "Failed" : alert.sentAt ? "Sent" : "Pending",
     exceptionId: `EX-${alert.shipmentException.shipment.externalId}`,
     shipmentId: alert.shipmentException.shipment.externalId,
     customer: alert.shipmentException.shipment.customer,
