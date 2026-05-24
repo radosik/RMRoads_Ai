@@ -2,6 +2,7 @@ import { HttpError } from "wasp/server";
 import type {
   GetRMRoadsPilotLeads,
   SubmitRMRoadsPilotLead,
+  UpdateRMRoadsPilotLeadStatus,
 } from "wasp/server/operations";
 import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
@@ -15,6 +16,11 @@ const submitPilotLeadSchema = z.object({
   currentTools: z.string().trim().min(2).max(240),
   disruptionPain: z.string().trim().min(10).max(1200),
   pilotGoal: z.string().trim().min(10).max(1200),
+});
+
+const updatePilotLeadStatusSchema = z.object({
+  id: z.string().min(1),
+  status: z.enum(["new", "contacted", "qualified", "rejected"]),
 });
 
 type PilotLeadResult = {
@@ -87,4 +93,30 @@ export const getRMRoadsPilotLeads: GetRMRoadsPilotLeads<
     ...lead,
     createdAt: lead.createdAt.toISOString(),
   }));
+};
+
+export const updateRMRoadsPilotLeadStatus: UpdateRMRoadsPilotLeadStatus<
+  z.infer<typeof updatePilotLeadStatusSchema>,
+  PilotLeadListItem
+> = async (rawArgs, context) => {
+  if (!context.user) {
+    throw new HttpError(401, "Only authenticated users can update pilot leads.");
+  }
+  if (!context.user.isAdmin) {
+    throw new HttpError(403, "Only admins can update pilot leads.");
+  }
+
+  const { id, status } = ensureArgsSchemaOrThrowHttpError(
+    updatePilotLeadStatusSchema,
+    rawArgs,
+  );
+  const lead = await context.entities.PilotLead.update({
+    where: { id },
+    data: { status },
+  });
+
+  return {
+    ...lead,
+    createdAt: lead.createdAt.toISOString(),
+  };
 };

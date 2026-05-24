@@ -126,6 +126,11 @@ query getRMRoadsPilotLeads {
   entities: [User, PilotLead]
 }
 
+action updateRMRoadsPilotLeadStatus {
+  fn: import { updateRMRoadsPilotLeadStatus } from "@src/rmroads/leadOperations",
+  entities: [User, PilotLead]
+}
+
 query getRMRoadsDashboard {
   fn: import { getRMRoadsDashboard } from "@src/rmroads/operations",
   entities: [User, Organization, OrganizationMember, ShipmentImport, Shipment, DisruptionEvent, ShipmentException, ExceptionDecision, CriticalAlert]
