@@ -51,14 +51,32 @@ function useScrollReveal() {
           const targets = Array.from(
             entry.target.querySelectorAll<HTMLElement>(".rmr-reveal"),
           );
-          if (targets.length === 0) return;
-          animate(targets, {
-            opacity: [0, 1],
-            translateY: [22, 0],
-            duration: 700,
-            delay: stagger(80),
-            ease: "outQuad",
+          if (targets.length > 0) {
+            animate(targets, {
+              opacity: [0, 1],
+              translateY: [22, 0],
+              duration: 700,
+              delay: stagger(80),
+              ease: "outQuad",
+            });
+          }
+          const counters = Array.from(
+            entry.target.querySelectorAll<HTMLElement>("[data-rmr-counter]"),
+          );
+          counters.forEach((el) => {
+            const target = Number(el.dataset.rmrCounter ?? "0");
+            const state = { value: 0 };
+            el.textContent = "0";
+            animate(state, {
+              value: target,
+              duration: 1100,
+              ease: "outCubic",
+              onUpdate: () => {
+                el.textContent = String(Math.round(state.value));
+              },
+            });
           });
+          if (targets.length === 0 && counters.length === 0) return;
           observer.unobserve(entry.target);
         });
       },
@@ -167,21 +185,28 @@ function Hero() {
 }
 
 function ProblemSection() {
-  const problems = [
+  const problems: Array<{
+    value: number;
+    suffix?: string;
+    unit: string;
+    label: string;
+    detail: string;
+  }> = [
     {
-      stat: "37",
+      value: 37,
       unit: "min",
       label: "Avg. time to detect a shipment exception today",
       detail: "Planners scan carrier portals, spreadsheets, and email threads to spot risk.",
     },
     {
-      stat: "5+",
+      value: 5,
+      suffix: "+",
       unit: "tools",
       label: "Systems touched before a recovery decision",
       detail: "TMS, ERP, customer CRM, supplier emails, and offline notes all weigh in.",
     },
     {
-      stat: "0",
+      value: 0,
       unit: "audit",
       label: "Decisions captured with reasoning for the next review",
       detail: "Outcomes vanish in chat threads — there is no system of record for response.",
@@ -204,9 +229,17 @@ function ProblemSection() {
         <div className="mt-12 grid gap-4 md:grid-cols-3">
           {problems.map((p) => (
             <div className="rmr-reveal rmr-panel min-w-0 p-6" key={p.label}>
-              <div className="flex items-baseline gap-2">
-                <span className="text-5xl font-bold tracking-tight text-foreground">{p.stat}</span>
-                <span className="rmr-label text-muted-foreground">{p.unit}</span>
+              <div className="flex items-baseline gap-1">
+                <span
+                  className="text-5xl font-bold tracking-tight text-foreground tabular-nums"
+                  data-rmr-counter={p.value}
+                >
+                  {p.value}
+                </span>
+                {p.suffix ? (
+                  <span className="text-5xl font-bold tracking-tight text-foreground">{p.suffix}</span>
+                ) : null}
+                <span className="rmr-label ml-2 text-muted-foreground">{p.unit}</span>
               </div>
               <div className="mt-4 text-sm font-semibold text-foreground">{p.label}</div>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">{p.detail}</p>
