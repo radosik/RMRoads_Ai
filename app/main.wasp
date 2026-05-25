@@ -88,13 +88,16 @@ app OpenSaaS {
   },
 
   emailSender: {
-    // NOTE: "Dummy" provider is just for local development purposes.
-    //   Make sure to check the server logs for the email confirmation url (it will not be sent to an address)!
-    //   Once you are ready for production, switch to e.g. "SendGrid" or "Mailgun" providers. Check out https://docs.opensaas.sh/guides/email-sending/ .
-    provider: Dummy,
+    // Uses Wasp's SMTP provider. For local dev, point SMTP_* at Mailpit
+    // (https://mailpit.axllent.org) so outgoing email lands in a local UI
+    // at http://localhost:8025 instead of being delivered. For production,
+    // swap the SMTP_* env vars for a real provider (SendGrid, Mailgun, SES).
+    // See docs/rmroads-ai-plan/15_pre_pilot_hardening.md for the migration path.
+    provider: SMTP,
     defaultFrom: {
       name: "RMRoads AI",
-      // When using a real provider, e.g. SendGrid, you must use the same email address that you configured your account to send out emails with!
+      // When using a real provider, this must match a verified sender on
+      // that provider's account. With Mailpit this address is irrelevant.
       email: "me@example.com"
     },
   },
