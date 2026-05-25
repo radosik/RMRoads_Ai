@@ -1,12 +1,13 @@
+import { useEffect } from "react";
+import { animate, stagger } from "animejs";
 import {
   AlertTriangle,
-  ArrowRight,
-  CheckCircle2,
   ClipboardCheck,
   Database,
   FileSpreadsheet,
   History,
   Network,
+  PlayCircle,
   Radar,
   Route,
   ShieldCheck,
@@ -16,6 +17,58 @@ import { Link as WaspRouterLink, routes } from "wasp/client/router";
 import { Button } from "../client/components/ui/button";
 import Footer from "../landing-page/components/Footer";
 import { footerNavigation } from "../landing-page/contentSections";
+import { RMRoadsWorldMap } from "./RMRoadsWorldMap";
+
+function useScrollReveal() {
+  useEffect(() => {
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const sections = Array.from(
+      document.querySelectorAll<HTMLElement>(".rmr-reveal-section"),
+    );
+    if (sections.length === 0) return;
+
+    if (reduceMotion) {
+      sections.forEach((section) =>
+        section.querySelectorAll<HTMLElement>(".rmr-reveal").forEach((el) => {
+          el.style.opacity = "1";
+          el.style.transform = "none";
+        }),
+      );
+      return;
+    }
+
+    sections.forEach((section) =>
+      section.querySelectorAll<HTMLElement>(".rmr-reveal").forEach((el) => {
+        el.style.opacity = "0";
+        el.style.transform = "translateY(22px)";
+      }),
+    );
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          const targets = Array.from(
+            entry.target.querySelectorAll<HTMLElement>(".rmr-reveal"),
+          );
+          if (targets.length === 0) return;
+          animate(targets, {
+            opacity: [0, 1],
+            translateY: [22, 0],
+            duration: 700,
+            delay: stagger(80),
+            ease: "outQuad",
+          });
+          observer.unobserve(entry.target);
+        });
+      },
+      { threshold: 0.18 },
+    );
+
+    sections.forEach((s) => observer.observe(s));
+    return () => observer.disconnect();
+  }, []);
+}
 
 const workflow = [
   {
@@ -59,8 +112,9 @@ const scenarioRows = [
 ];
 
 export default function RMRoadsProductPage() {
+  useScrollReveal();
   return (
-    <div className="bg-background text-foreground">
+    <div className="dark bg-background text-foreground">
       <main className="rmr-grid-bg overflow-hidden">
         <Hero />
         <Workflow />
@@ -75,16 +129,20 @@ export default function RMRoadsProductPage() {
 
 function Hero() {
   return (
-    <section className="relative border-b border-border/30 px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+    <section className="rmr-reveal-section relative border-b border-border/30 px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
       <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)] lg:items-center">
         <div className="min-w-0">
-          <h1 className="max-w-3xl text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-[4rem] lg:leading-[1.02]">
-            Disruption response workbench for shipment planners.
+          <div className="rmr-reveal rmr-label mb-6 inline-flex items-center gap-2 rounded-full border border-secondary/30 bg-secondary/10 px-3 py-1 text-secondary">
+            <span className="rmr-glow size-2 rounded-full bg-secondary" />
+            SYSTEM ACTIVE
+          </div>
+          <h1 className="rmr-reveal max-w-3xl text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-[4rem] lg:leading-[1.02]">
+            Rank shipment risk, compare recovery options.
           </h1>
-          <p className="mt-6 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
-            RMRoads AI helps logistics teams rank shipment risk, compare recovery options, and approve response actions before delays become customer failures.
+          <p className="rmr-reveal mt-6 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
+            Approve response actions before delays hit customers. High-stakes logistics operations demand precision, not fragmented alerts.
           </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+          <div className="rmr-reveal mt-8 flex flex-col gap-3 sm:flex-row">
             <Button className="rmr-label h-12 rounded bg-secondary px-6 text-secondary-foreground hover:bg-secondary-muted" asChild>
               <WaspRouterLink to={routes.RMRoadsPilotRoute.to}>
                 Book a disruption audit
@@ -92,49 +150,29 @@ function Hero() {
             </Button>
             <Button className="rmr-label h-12 rounded border-border/70 px-6" variant="outline" asChild>
               <WaspRouterLink to={routes.RMRoadsDashboardRoute.to}>
-                Open workspace <ArrowRight className="ml-2 size-4" />
+                <PlayCircle className="mr-2 size-4" /> See the workflow
               </WaspRouterLink>
             </Button>
           </div>
         </div>
 
-        <div className="rmr-panel relative min-h-[34rem] overflow-hidden bg-[#03111f] p-0 text-slate-100">
-          <div className="absolute inset-0 rmr-grid-bg opacity-80" />
-          <svg className="absolute inset-0 h-full w-full" viewBox="0 0 900 560" role="img" aria-label="Shipment exception network">
-            <path d="M70 420 C230 252 360 250 470 300 S690 280 835 110" fill="none" stroke="#4cd7f6" strokeOpacity="0.75" strokeWidth="2" />
-            <path d="M120 120 C244 178 340 160 455 230 S650 362 820 304" fill="none" stroke="#a1cfcf" strokeOpacity="0.25" strokeWidth="1.5" />
-            <path d="M150 500 C288 420 390 430 520 350 S680 174 790 176" fill="none" stroke="#4cd7f6" strokeOpacity="0.22" strokeWidth="1.5" />
-            {[
-              [70, 420, "VRC"],
-              [470, 300, "HUB"],
-              [835, 110, "ATL"],
-              [120, 120, "SHA"],
-              [820, 304, "LAX"],
-              [150, 500, "FRA"],
-              [790, 176, "JFK"],
-            ].map(([x, y, label]) => (
-              <g key={label as string}>
-                <circle cx={x as number} cy={y as number} r="5" fill="#4cd7f6" />
-                <text x={(x as number) + 10} y={(y as number) - 8} fill="#d4e4fa" fontSize="11" fontFamily="Geist">{label}</text>
-              </g>
-            ))}
-            <circle cx="835" cy="110" r="15" fill="#ffb4ab" fillOpacity="0.12" stroke="#ffb4ab" />
-          </svg>
-          <div className="absolute left-4 top-4 w-[min(22rem,calc(100%-2rem))] rounded border border-border/40 bg-background/90 p-4 text-foreground backdrop-blur">
+        <div className="rmr-reveal rmr-panel relative min-h-[34rem] overflow-hidden bg-[#03111f] p-0 text-slate-100">
+          <div className="absolute inset-0 rmr-grid-bg opacity-50" />
+          <RMRoadsWorldMap />
+          <div className="absolute left-4 top-4 w-[min(20rem,calc(100%-2rem))] rounded border border-destructive/40 bg-background/85 p-4 text-foreground backdrop-blur">
             <div className="rmr-label flex items-center gap-2 text-destructive">
-              <AlertTriangle className="size-4" /> Critical exception
+              <AlertTriangle className="size-4" /> Node delay: SHA-T1
             </div>
-            <div className="mt-3 text-lg font-semibold">SHP-1001 at risk</div>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">Port congestion and high customer priority push this shipment to the top of the queue.</p>
+            <div className="rmr-data mt-3 text-muted-foreground">ETA Impact: +14h</div>
           </div>
-          <div className="absolute bottom-4 right-4 w-[min(24rem,calc(100%-2rem))] rounded border border-secondary/40 bg-background/90 p-4 text-foreground backdrop-blur">
+          <div className="absolute bottom-4 right-4 w-[min(22rem,calc(100%-2rem))] rounded border border-secondary/40 bg-background/85 p-4 text-foreground backdrop-blur">
             <div className="mb-3 flex items-center justify-between border-b border-border/30 pb-3">
-              <span className="rmr-label text-secondary">Scenario ready</span>
-              <span className="rmr-data">95/100</span>
+              <span className="rmr-label text-secondary">Route opti</span>
+              <span className="rmr-label rounded bg-secondary/15 px-2 py-0.5 text-secondary">ACTIVE</span>
             </div>
-            <div className="grid gap-2 text-sm">
-              <span className="flex items-center gap-2"><CheckCircle2 className="size-4 text-secondary" /> Expedite protects priority customer.</span>
-              <span className="flex items-center gap-2"><CheckCircle2 className="size-4 text-secondary" /> Planner approval required.</span>
+            <div className="rmr-data grid gap-1 text-muted-foreground">
+              <span>&gt; Analyzing 4,120 lanes</span>
+              <span>&gt; Rerouting... OK</span>
             </div>
           </div>
         </div>
@@ -145,17 +183,17 @@ function Hero() {
 
 function Workflow() {
   return (
-    <section className="border-b border-border/30 px-4 py-16 sm:px-6 lg:px-8">
+    <section className="rmr-reveal-section border-b border-border/30 px-4 py-16 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <div className="max-w-2xl">
-          <h2 className="text-2xl font-semibold sm:text-3xl">A narrow pilot workflow that proves value fast.</h2>
-          <p className="mt-4 text-sm leading-6 text-muted-foreground">
+          <h2 className="rmr-reveal text-2xl font-semibold sm:text-3xl">A narrow pilot workflow that proves value fast.</h2>
+          <p className="rmr-reveal mt-4 text-sm leading-6 text-muted-foreground">
             The MVP focuses on decisions before automation: find exposed shipments, recommend a response, and store the approval trail.
           </p>
         </div>
         <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {workflow.map((item, index) => (
-            <div className="rmr-panel min-w-0 p-5" key={item.title}>
+            <div className="rmr-reveal rmr-panel min-w-0 p-5" key={item.title}>
               <div className="mb-5 flex items-center justify-between">
                 <div className="flex size-10 items-center justify-center rounded border border-secondary/30 bg-secondary/10 text-secondary">
                   <item.icon className="size-5" />
@@ -174,9 +212,9 @@ function Workflow() {
 
 function WorkbenchPreview() {
   return (
-    <section className="border-b border-border/30 px-4 py-16 sm:px-6 lg:px-8">
+    <section className="rmr-reveal-section border-b border-border/30 px-4 py-16 sm:px-6 lg:px-8">
       <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-        <div className="rmr-panel overflow-hidden">
+        <div className="rmr-reveal rmr-panel overflow-hidden">
           <div className="border-b border-border/30 bg-card-subtle/70 px-4 py-3">
             <div className="rmr-label flex items-center gap-2 text-secondary">
               <Database className="size-4" /> Exception queue
@@ -207,7 +245,7 @@ function WorkbenchPreview() {
           ))}
         </div>
 
-        <div className="grid gap-4">
+        <div className="rmr-reveal grid gap-4">
           <div className="rmr-panel p-5">
             <div className="rmr-label mb-3 flex items-center gap-2 text-secondary">
               <Truck className="size-4" /> Shipment detail
@@ -245,14 +283,14 @@ function WorkbenchPreview() {
 
 function ControlLayer() {
   return (
-    <section className="border-b border-border/30 px-4 py-16 sm:px-6 lg:px-8">
+    <section className="rmr-reveal-section border-b border-border/30 px-4 py-16 sm:px-6 lg:px-8">
       <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-3">
         {[
           ["Human approval", "Recommendations are decision support. The planner approves, defers, or rejects every action."],
           ["Explainable scoring", "Risk reasons stay visible beside the recommendation so the team can challenge bad assumptions."],
           ["Tenant-scoped data", "Workspace data is tied to the organization, with admin-only settings and pre-pilot access review."],
         ].map(([title, text]) => (
-          <div className="rmr-panel p-6" key={title}>
+          <div className="rmr-reveal rmr-panel p-6" key={title}>
             <ShieldCheck className="mb-5 size-9 text-secondary" />
             <h3 className="text-lg font-semibold">{title}</h3>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">{text}</p>
@@ -265,13 +303,13 @@ function ControlLayer() {
 
 function FinalCta() {
   return (
-    <section className="px-4 py-16 sm:px-6 lg:px-8">
+    <section className="rmr-reveal-section px-4 py-16 sm:px-6 lg:px-8">
       <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
-        <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Use the pilot to prove decision speed.</h2>
-        <p className="mt-4 max-w-xl text-sm leading-6 text-muted-foreground">
+        <h2 className="rmr-reveal text-3xl font-semibold tracking-tight sm:text-4xl">Use the pilot to prove decision speed.</h2>
+        <p className="rmr-reveal mt-4 max-w-xl text-sm leading-6 text-muted-foreground">
           Start with a 30-45 day disruption audit on active shipments, then review decisions and protected value weekly.
         </p>
-        <Button className="rmr-label mt-8 h-12 rounded bg-secondary px-6 text-secondary-foreground hover:bg-secondary-muted" asChild>
+        <Button className="rmr-reveal rmr-label mt-8 h-12 rounded bg-secondary px-6 text-secondary-foreground hover:bg-secondary-muted" asChild>
           <WaspRouterLink to={routes.RMRoadsPilotRoute.to}>
             Book a disruption audit
           </WaspRouterLink>
