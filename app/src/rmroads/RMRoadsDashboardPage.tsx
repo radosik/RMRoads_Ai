@@ -23,6 +23,9 @@ import {
   getRMRoadsDashboard,
   importRMRoadsShipmentCsv,
   seedRMRoadsDemoData,
+  toggleRMRoadsDisruptionEventStatus,
+  upsertRMRoadsDisruptionEvent,
+  updateRMRoadsDecisionOutcome,
   useQuery,
 } from "wasp/client/operations";
 import { Button } from "../client/components/ui/button";
@@ -34,6 +37,7 @@ import { buildPilotSummaryRows } from "./domain/pilotSummary";
 import { generateRecommendation } from "./domain/recommendations";
 import type {
   DisruptionSeverity,
+  DisruptionEvent,
   RiskLevel,
   ScenarioAction,
 } from "./domain/types";
@@ -81,6 +85,18 @@ const shipmentCsvTemplateRows = [
   ],
 ];
 
+const defaultSignalForm = {
+  type: "Port congestion",
+  severity: "high" as DisruptionSeverity,
+  affectedText: "",
+  mode: "",
+  carrier: "",
+  confidence: 75,
+  source: "Planner report",
+  startsAt: "",
+  expiresAt: "",
+};
+
 export default function RMRoadsDashboardPage() {
   const [importMessage, setImportMessage] = useState("");
   const [importErrors, setImportErrors] = useState<ImportError[]>([]);
@@ -88,10 +104,15 @@ export default function RMRoadsDashboardPage() {
   const [ownerFilter, setOwnerFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [riskFilter, setRiskFilter] = useState("all");
+  const [carrierFilter, setCarrierFilter] = useState("all");
+  const [modeFilter, setModeFilter] = useState("all");
+  const [queueSearch, setQueueSearch] = useState("");
   const [selectedExceptionId, setSelectedExceptionId] = useState("");
   const [selectedScenarioAction, setSelectedScenarioAction] = useState<ScenarioAction | "">("");
   const [decisionNote, setDecisionNote] = useState("");
   const [decisionError, setDecisionError] = useState("");
+  const [signalForm, setSignalForm] = useState(defaultSignalForm);
+  const [signalMessage, setSignalMessage] = useState("");
   const dashboardQuery = useQuery(getRMRoadsDashboard);
   const dashboard = dashboardQuery.data;
   const shipments = dashboard?.shipments || [];
@@ -105,17 +126,39 @@ export default function RMRoadsDashboardPage() {
     selectedException && selectedExceptionShipment
       ? generateRecommendation(selectedException, selectedExceptionShipment)
       : undefined;
+  const latestSelectedDecision = selectedException
+    ? dashboard?.decisions.find((decision: any) => decision.exceptionId === selectedException.id)
+    : undefined;
   const selectedAction =
     selectedScenarioAction || selectedException?.selectedScenarioAction || recommendation?.primaryAction || "watch";
+  const carrierOptions = ["all", ...Array.from(new Set(shipments.map((shipment) => shipment.carrier).filter(Boolean))).sort()];
+  const modeOptions = ["all", ...Array.from(new Set(shipments.map((shipment) => shipment.mode).filter(Boolean))).sort()];
 
   const filteredExceptions = exceptions.filter((exception) => {
+    const shipment = shipments.find((item) => item.id === exception.shipmentId);
+    const normalizedSearch = queueSearch.trim().toLowerCase();
     const ownerMatch =
       ownerFilter === "all" ||
       (ownerFilter === "unassigned" && !exception.owner) ||
       exception.owner === ownerFilter;
     const statusMatch = statusFilter === "all" || exception.status === statusFilter;
     const riskMatch = riskFilter === "all" || exception.riskLevel === riskFilter;
-    return ownerMatch && statusMatch && riskMatch;
+    const carrierMatch = carrierFilter === "all" || shipment?.carrier === carrierFilter;
+    const modeMatch = modeFilter === "all" || shipment?.mode === modeFilter;
+    const searchMatch =
+      !normalizedSearch ||
+      [
+        exception.customer,
+        exception.shipmentId,
+        exception.lane,
+        exception.reason,
+        shipment?.carrier || "",
+        shipment?.mode || "",
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalizedSearch);
+    return ownerMatch && statusMatch && riskMatch && carrierMatch && modeMatch && searchMatch;
   });
 
   const refreshDashboard = async () => {
@@ -179,6 +222,7 @@ export default function RMRoadsDashboardPage() {
         rejectedCount: dashboard.rejectedCount,
         averageRiskScore: dashboard.averageRiskScore,
         estimatedProtectedValue: dashboard.estimatedProtectedValue,
+        averageResponseHours: dashboard.averageResponseHours,
         shipments: dashboard.shipments,
         exceptions: dashboard.exceptions,
         decisions: dashboard.decisions,
@@ -186,6 +230,23 @@ export default function RMRoadsDashboardPage() {
         importHistory: dashboard.importHistory,
       }),
     );
+  };
+
+  const handleSignalSubmit = async () => {
+    setSignalMessage("");
+    try {
+      await upsertRMRoadsDisruptionEvent(signalForm);
+      setSignalForm(defaultSignalForm);
+      setSignalMessage("Signal saved.");
+      await refreshDashboard();
+    } catch (error: any) {
+      setSignalMessage(error.message || "Could not save signal.");
+    }
+  };
+
+  const handleToggleSignal = async (id: string) => {
+    await toggleRMRoadsDisruptionEventStatus({ id });
+    await refreshDashboard();
   };
 
   const handleDecision = async (status: "approved" | "deferred" | "rejected") => {
@@ -206,6 +267,23 @@ export default function RMRoadsDashboardPage() {
     await refreshDashboard();
   };
 
+  const handleDecisionOutcome = async ({
+    decisionId,
+    outcomeNote,
+    outcomeStatus,
+  }: {
+    decisionId: string;
+    outcomeNote: string;
+    outcomeStatus: "pending" | "monitoring" | "successful" | "failed";
+  }) => {
+    await updateRMRoadsDecisionOutcome({
+      decisionId,
+      outcomeNote,
+      outcomeStatus,
+    });
+    await refreshDashboard();
+  };
+
   return (
     <main className="rmr-workspace h-[calc(100vh-4rem)] overflow-hidden bg-background text-foreground">
       <div className="flex h-full overflow-hidden">
@@ -217,6 +295,11 @@ export default function RMRoadsDashboardPage() {
           importErrors={importErrors}
           importMessage={importMessage}
           isImporting={isImporting}
+          onSignalChange={setSignalForm}
+          onSignalSubmit={handleSignalSubmit}
+          onToggleSignal={handleToggleSignal}
+          signalForm={signalForm}
+          signalMessage={signalMessage}
         />
 
         <section className="flex h-full min-w-0 flex-1 flex-col bg-background">
@@ -255,11 +338,19 @@ export default function RMRoadsDashboardPage() {
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
             <WorkbenchExceptionQueue
               filteredExceptions={filteredExceptions}
+              carrierFilter={carrierFilter}
+              carrierOptions={carrierOptions}
+              modeFilter={modeFilter}
+              modeOptions={modeOptions}
               ownerFilter={ownerFilter}
+              queueSearch={queueSearch}
               refreshDashboard={refreshDashboard}
               riskFilter={riskFilter}
               selectedExceptionId={selectedException?.id || ""}
+              setCarrierFilter={setCarrierFilter}
+              setModeFilter={setModeFilter}
               setOwnerFilter={setOwnerFilter}
+              setQueueSearch={setQueueSearch}
               setRiskFilter={setRiskFilter}
               setSelectedExceptionId={(id: string) => {
                 setSelectedExceptionId(id);
@@ -275,6 +366,8 @@ export default function RMRoadsDashboardPage() {
               decisionError={decisionError}
               decisionNote={decisionNote}
               handleDecision={handleDecision}
+              latestDecision={latestSelectedDecision}
+              handleDecisionOutcome={handleDecisionOutcome}
               recommendation={recommendation}
               selectedAction={selectedAction}
               selectedException={selectedException}
@@ -296,7 +389,13 @@ function WorkbenchSideRail({
   importErrors,
   importMessage,
   isImporting,
+  onSignalChange,
+  onSignalSubmit,
+  onToggleSignal,
+  signalForm,
+  signalMessage,
 }: any) {
+  const activeSignals = (dashboard?.disruptionEvents || []).filter((event: DisruptionEvent) => event.status === "active");
   return (
     <aside className="hidden w-16 shrink-0 flex-col border-r border-border/30 bg-card-subtle transition-all duration-300 dark:bg-[#010f1f] md:flex lg:w-[var(--rmr-rail-width)]">
       <div className="hidden border-b border-border/30 p-[var(--rmr-panel-pad)] lg:block">
@@ -328,6 +427,91 @@ function WorkbenchSideRail({
         </label>
         {importMessage ? <p className="hidden text-xs leading-5 text-secondary lg:block">{importMessage}</p> : null}
         {importErrors.length ? <div className="hidden lg:block"><ImportErrorsTable errors={importErrors} /></div> : null}
+      </div>
+
+      <div className="hidden min-h-0 border-b border-border/30 p-[var(--rmr-panel-pad)] lg:grid lg:max-h-[46vh] lg:gap-3 lg:overflow-y-auto rmr-scrollbar">
+        <div>
+          <div className="rmr-label text-secondary">Signals</div>
+          <p className="mt-1 text-[11px] leading-5 text-muted-foreground">
+            Create active pilot signals that affect risk scoring.
+          </p>
+        </div>
+        <Input
+          aria-label="Signal type"
+          className="h-8 text-xs"
+          placeholder="Signal type"
+          value={signalForm.type}
+          onChange={(event) => onSignalChange((current: typeof defaultSignalForm) => ({ ...current, type: event.currentTarget.value }))}
+        />
+        <Input
+          aria-label="Affected lane, carrier, or place"
+          className="h-8 text-xs"
+          placeholder="Affected lane, carrier, or place"
+          value={signalForm.affectedText}
+          onChange={(event) => onSignalChange((current: typeof defaultSignalForm) => ({ ...current, affectedText: event.currentTarget.value }))}
+        />
+        <div className="grid grid-cols-1 gap-2 xl:grid-cols-[minmax(0,1fr)_5.25rem]">
+          <NativeSelect
+            label="Severity"
+            value={signalForm.severity}
+            onChange={(severity) => onSignalChange((current: typeof defaultSignalForm) => ({ ...current, severity }))}
+            options={["low", "medium", "high", "critical"]}
+          />
+          <Input
+            aria-label="Confidence"
+            className="h-9 text-xs"
+            min={1}
+            max={100}
+            type="number"
+            value={signalForm.confidence}
+            onChange={(event) => onSignalChange((current: typeof defaultSignalForm) => ({ ...current, confidence: Number(event.currentTarget.value) || 1 }))}
+          />
+        </div>
+        <div className="grid gap-2">
+          <label className="grid min-w-0 gap-1 text-xs font-semibold text-muted-foreground">
+            Starts
+            <Input
+              aria-label="Signal starts at"
+              className="h-8 min-w-0 text-xs"
+              type="date"
+              value={signalForm.startsAt}
+              onChange={(event) => onSignalChange((current: typeof defaultSignalForm) => ({ ...current, startsAt: event.currentTarget.value }))}
+            />
+          </label>
+          <label className="grid min-w-0 gap-1 text-xs font-semibold text-muted-foreground">
+            Expires
+            <Input
+              aria-label="Signal expires at"
+              className="h-8 min-w-0 text-xs"
+              type="date"
+              value={signalForm.expiresAt}
+              onChange={(event) => onSignalChange((current: typeof defaultSignalForm) => ({ ...current, expiresAt: event.currentTarget.value }))}
+            />
+          </label>
+        </div>
+        <Button className="rmr-label h-8 rounded bg-secondary text-secondary-foreground hover:bg-secondary-muted" onClick={onSignalSubmit} type="button">
+          Add Signal
+        </Button>
+        {signalMessage ? <p className="text-xs font-semibold text-secondary">{signalMessage}</p> : null}
+        <div className="grid gap-2">
+          {activeSignals.slice(0, 4).map((event: DisruptionEvent) => (
+            <div className="rounded border border-border/40 bg-background/70 p-2.5" key={event.id}>
+              <div className="grid gap-2">
+                <div className="min-w-0">
+                  <div className="break-words text-xs font-semibold leading-5">{event.type}</div>
+                  <div className="mt-1 truncate text-[11px] text-muted-foreground">{event.affectedText}</div>
+                  <div className="mt-1 text-[10px] text-muted-foreground">
+                    {event.startsAt || "Now"} - {event.expiresAt || "Open"}
+                  </div>
+                </div>
+                <button className="rmr-label justify-self-start text-[10px] text-muted-foreground hover:text-destructive" onClick={() => onToggleSignal(event.id)} type="button">
+                  Archive
+                </button>
+              </div>
+            </div>
+          ))}
+          {!activeSignals.length ? <p className="text-xs text-muted-foreground">No active signals.</p> : null}
+        </div>
       </div>
 
       <nav className="flex-1 overflow-y-auto py-2 rmr-scrollbar">
@@ -400,8 +584,10 @@ function WorkbenchContextBar({ dashboard, dashboardQuery, exceptions, handleDown
         <div className="flex items-center gap-5 rounded border border-border/40 bg-card-subtle/60 px-4 py-1">
           <MiniContextMetric label="Decisions" value={`${dashboard?.reviewedCount || 0}`} />
           <div className="h-7 w-px bg-border/50" />
+          <MiniContextMetric label="Avg Response" value={formatHours(dashboard?.averageResponseHours || 0)} />
+          <div className="h-7 w-px bg-border/50" />
           <MiniContextMetric label="Value Protected" value={currencyFormatter.format(dashboard?.estimatedProtectedValue || 0)} accent />
-          <div className="h-1 w-32 overflow-hidden rounded-full bg-muted">
+          <div className="hidden h-1 w-24 overflow-hidden rounded-full bg-muted xl:block">
             <div className="h-full w-3/5 rounded-full bg-secondary" />
           </div>
         </div>
@@ -427,12 +613,20 @@ function MiniContextMetric({ accent = false, label, value }: { accent?: boolean;
 }
 
 function WorkbenchExceptionQueue({
+  carrierFilter,
+  carrierOptions,
   filteredExceptions,
+  modeFilter,
+  modeOptions,
   ownerFilter,
+  queueSearch,
   refreshDashboard,
   riskFilter,
   selectedExceptionId,
+  setCarrierFilter,
+  setModeFilter,
   setOwnerFilter,
+  setQueueSearch,
   setRiskFilter,
   setSelectedExceptionId,
   setStatusFilter,
@@ -460,9 +654,32 @@ function WorkbenchExceptionQueue({
   return (
     <section className="flex min-h-0 w-full min-w-0 flex-col overflow-hidden border-r border-border/30 bg-background lg:w-[55%] xl:w-[60%]">
       <div className="grid grid-cols-1 gap-2 border-b border-border/30 bg-card-subtle/45 p-3 sm:hidden">
+        <Input
+          aria-label="Search exceptions"
+          className="h-9"
+          placeholder="Search customer, lane, carrier..."
+          value={queueSearch}
+          onChange={(event) => setQueueSearch(event.currentTarget.value)}
+        />
         <NativeSelect label="Owner" value={ownerFilter} onChange={setOwnerFilter} options={["all", "unassigned", ...owners]} />
         <NativeSelect label="Status" value={statusFilter} onChange={setStatusFilter} options={["all", "new", "approved", "deferred", "rejected"]} />
         <NativeSelect label="Risk" value={riskFilter} onChange={setRiskFilter} options={["all", "medium", "high", "critical"]} />
+        <NativeSelect label="Mode" value={modeFilter} onChange={setModeFilter} options={modeOptions} />
+        <NativeSelect label="Carrier" value={carrierFilter} onChange={setCarrierFilter} options={carrierOptions} />
+      </div>
+      <div className="hidden gap-2 border-b border-border/30 bg-card-subtle/45 px-[var(--rmr-page-pad)] py-2 sm:grid lg:grid-cols-[minmax(10rem,1.4fr)_repeat(5,minmax(6rem,0.7fr))]">
+        <Input
+          aria-label="Search exceptions"
+          className="h-8 text-xs"
+          placeholder="Search customer, shipment, lane, carrier..."
+          value={queueSearch}
+          onChange={(event) => setQueueSearch(event.currentTarget.value)}
+        />
+        <CompactSelect value={ownerFilter} onChange={setOwnerFilter} options={["all", "unassigned", ...owners]} />
+        <CompactSelect value={statusFilter} onChange={setStatusFilter} options={["all", "new", "approved", "deferred", "rejected"]} />
+        <CompactSelect value={riskFilter} onChange={setRiskFilter} options={["all", "medium", "high", "critical"]} />
+        <CompactSelect value={modeFilter} onChange={setModeFilter} options={modeOptions} />
+        <CompactSelect value={carrierFilter} onChange={setCarrierFilter} options={carrierOptions} />
       </div>
       <div className="hidden grid-cols-12 gap-2 border-b border-border/30 bg-card-subtle/45 px-[var(--rmr-page-pad)] py-2 text-[11px] font-bold uppercase tracking-[0.05em] text-muted-foreground sm:grid">
         <div className="col-span-3">Shipment / ID</div>
@@ -520,6 +737,8 @@ function WorkbenchDetailPanel({
   decisionError,
   decisionNote,
   handleDecision,
+  handleDecisionOutcome,
+  latestDecision,
   recommendation,
   selectedAction,
   selectedException,
@@ -528,6 +747,15 @@ function WorkbenchDetailPanel({
 }: any) {
   const detailRef = useRef<HTMLElement | null>(null);
   const scenarioRef = useRef<HTMLDivElement | null>(null);
+  const [outcomeStatus, setOutcomeStatus] = useState<"pending" | "monitoring" | "successful" | "failed">("pending");
+  const [outcomeNote, setOutcomeNote] = useState("");
+  const [outcomeMessage, setOutcomeMessage] = useState("");
+
+  useEffect(() => {
+    setOutcomeStatus(latestDecision?.outcomeStatus || "pending");
+    setOutcomeNote(latestDecision?.outcomeNote || "");
+    setOutcomeMessage("");
+  }, [latestDecision?.id, latestDecision?.outcomeStatus, latestDecision?.outcomeNote]);
 
   useEffect(() => {
     if (!selectedException?.id || !detailRef.current || !shouldRunMotion()) return;
@@ -641,6 +869,53 @@ function WorkbenchDetailPanel({
             {decisionError ? <p className="text-sm font-semibold text-destructive">{decisionError}</p> : null}
           </div>
 
+          {latestDecision ? (
+            <div className="grid gap-2 rounded border border-border/40 bg-background/60 p-[var(--rmr-panel-pad)]" data-rmr-detail-animate>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <div className="rmr-label text-muted-foreground">Decision outcome</div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Track whether the approved response worked during pilot review.
+                  </p>
+                </div>
+                <select
+                  className="h-9 rounded border border-input bg-background px-2 text-xs text-foreground"
+                  value={outcomeStatus}
+                  onChange={(event) => setOutcomeStatus(event.currentTarget.value as "pending" | "monitoring" | "successful" | "failed")}
+                >
+                  <option value="pending">Pending</option>
+                  <option value="monitoring">Monitoring</option>
+                  <option value="successful">Successful</option>
+                  <option value="failed">Failed</option>
+                </select>
+              </div>
+              <Textarea
+                className="min-h-14"
+                value={outcomeNote}
+                onChange={(event) => setOutcomeNote(event.currentTarget.value)}
+                placeholder="Add actual result, customer impact, or follow-up notes."
+              />
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  className="rmr-label h-8 rounded"
+                  onClick={async () => {
+                    await handleDecisionOutcome({
+                      decisionId: latestDecision.id,
+                      outcomeNote,
+                      outcomeStatus,
+                    });
+                    setOutcomeMessage("Outcome saved.");
+                  }}
+                  type="button"
+                  variant="outline"
+                >
+                  Save Outcome
+                </Button>
+                {outcomeMessage ? <span className="text-xs font-semibold text-secondary">{outcomeMessage}</span> : null}
+              </div>
+            </div>
+          ) : null}
+
           <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto]" data-rmr-detail-animate>
             <Button className="rmr-label rounded bg-secondary text-secondary-foreground hover:bg-secondary-muted" onClick={() => handleDecision("approved")}>
               Execute Recommendation
@@ -711,6 +986,20 @@ function NativeSelect({ label, onChange, options, value }: { label: string; onCh
   return <label className="grid min-w-0 gap-1 text-xs font-semibold text-muted-foreground">{label}<select className="h-9 min-w-0 rounded-md border border-input bg-background px-3 text-sm text-foreground" value={value} onChange={(event) => onChange(event.currentTarget.value)}>{options.map((option) => <option key={option} value={option}>{formatAction(option)}</option>)}</select></label>;
 }
 
+function CompactSelect({ onChange, options, value }: { onChange: (value: string) => void; options: string[]; value: string }) {
+  return (
+    <select
+      className="h-8 min-w-0 rounded border border-input bg-background px-2 text-xs text-foreground"
+      value={value}
+      onChange={(event) => onChange(event.currentTarget.value)}
+    >
+      {options.map((option) => (
+        <option key={option} value={option}>{formatAction(option)}</option>
+      ))}
+    </select>
+  );
+}
+
 function RiskBadge({ level, score }: { level: RiskLevel | DisruptionSeverity; score?: number }) {
   const className = level === "critical" ? "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200" : level === "high" ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200" : level === "medium" ? "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200" : "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100";
   return <span className={`inline-flex max-w-full rounded-full px-2 py-1 text-xs font-semibold leading-tight [overflow-wrap:anywhere] ${className}`}>{level}{typeof score === "number" ? ` ${score}/100` : ""}</span>;
@@ -734,4 +1023,10 @@ function escapeCsvCell(value: string | number) {
 
 function formatAction(value: string) {
   return value.split("-").join(" ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function formatHours(value: number) {
+  if (!value) return "-";
+  if (value < 24) return `${value}h`;
+  return `${Math.round(value / 24)}d`;
 }

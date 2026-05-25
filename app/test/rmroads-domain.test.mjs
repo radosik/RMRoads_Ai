@@ -81,6 +81,76 @@ test("scenario action selection keeps critical high-value shipments on expedite"
   assert.equal(domain.choosePrimaryAction(exception, shipment), "expedite");
 });
 
+test("disruption event scoring respects start and expiration dates", () => {
+  const now = new Date("2026-05-25T12:00:00.000Z");
+  const baseEvent = {
+    id: "EVT-1",
+    type: "Port congestion",
+    severity: "high",
+    affectedText: "Long Beach CA",
+    mode: "Ocean",
+    carrier: "",
+    confidence: 80,
+    source: "Planner report",
+    status: "active",
+  };
+
+  assert.equal(domain.isEventActiveForScoring(baseEvent, now), true);
+  assert.equal(domain.isEventActiveForScoring({ ...baseEvent, startsAt: "2026-05-26" }, now), false);
+  assert.equal(domain.isEventActiveForScoring({ ...baseEvent, expiresAt: "2026-05-24" }, now), false);
+  assert.equal(domain.isEventActiveForScoring({ ...baseEvent, status: "archived" }, now), false);
+});
+
+test("decision metrics calculate planner response time", () => {
+  assert.equal(
+    domain.calculateResponseHours("2026-05-25T08:00:00.000Z", "2026-05-25T13:30:00.000Z"),
+    6,
+  );
+
+  const metrics = domain.calculateDecisionMetrics([
+    {
+      id: "D-1",
+      exceptionId: "EX-1",
+      shipmentId: "S-1",
+      customer: "Acme",
+      lane: "A -> B",
+      status: "approved",
+      scenarioAction: "expedite",
+      owner: "Maya",
+      decidedBy: "planner@example.com",
+      decidedAt: "2026-05-25T13:30:00.000Z",
+      responseHours: 6,
+      riskLevel: "critical",
+      riskScore: 90,
+      estimatedProtectedValue: 10000,
+      note: "",
+      outcomeStatus: "pending",
+      outcomeNote: "",
+    },
+    {
+      id: "D-2",
+      exceptionId: "EX-2",
+      shipmentId: "S-2",
+      customer: "Atlas",
+      lane: "C -> D",
+      status: "deferred",
+      scenarioAction: "notify",
+      owner: "Leo",
+      decidedBy: "planner@example.com",
+      decidedAt: "2026-05-25T15:00:00.000Z",
+      responseHours: 2,
+      riskLevel: "high",
+      riskScore: 70,
+      estimatedProtectedValue: 0,
+      note: "",
+      outcomeStatus: "monitoring",
+      outcomeNote: "",
+    },
+  ]);
+
+  assert.equal(metrics.averageResponseHours, 4);
+});
+
 test("workspace role helpers separate admin, planner, and viewer permissions", () => {
   assert.equal(domain.canManageWorkspace("admin"), true);
   assert.equal(domain.canManageWorkspace("planner"), false);
@@ -189,6 +259,7 @@ test("pilot summary rows include weekly review metrics and top risks", () => {
       rejectedCount: 1,
       averageRiskScore: 82,
       estimatedProtectedValue: 18000,
+      averageResponseHours: 4,
       shipments: [],
       exceptions: [
         {
@@ -217,10 +288,13 @@ test("pilot summary rows include weekly review metrics and top risks", () => {
           owner: "Maya",
           decidedBy: "planner@example.com",
           decidedAt: "2026-05-24T12:00:00.000Z",
+          responseHours: 4,
           riskLevel: "critical",
           riskScore: 95,
           estimatedProtectedValue: 10000,
           note: "Protect priority customer",
+          outcomeStatus: "successful",
+          outcomeNote: "Arrived before customer escalation",
         },
       ],
       alerts: [
@@ -253,7 +327,9 @@ test("pilot summary rows include weekly review metrics and top risks", () => {
 
   assert.deepEqual(rows[0], ["Section", "Metric", "Value"]);
   assert.ok(rows.some((row) => row[1] === "Organization" && row[2] === "Northwind Supply"));
+  assert.ok(rows.some((row) => row[1] === "Average response hours" && row[2] === 4));
   assert.ok(rows.some((row) => row[1] === "Top risk shipments" && String(row[2]).includes("S-1 Atlas 95/100")));
+  assert.ok(rows.some((row) => row[1] === "Successful outcomes" && row[2] === 1));
   assert.ok(rows.some((row) => row[1] === "Critical alert failures" && row[2] === 1));
 });
 
@@ -271,6 +347,7 @@ test("weekly pilot summary email formats metrics and escapes top risks", () => {
     rejectedCount: 0,
     averageRiskScore: 91,
     estimatedProtectedValue: 10000,
+    averageResponseHours: 5,
     shipments: [],
     exceptions: [
       {

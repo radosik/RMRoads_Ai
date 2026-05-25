@@ -9,7 +9,12 @@ export {
   requiredShipmentCsvFields,
   validateShipmentRows,
 } from "../src/rmroads/domain/csv";
+export { isEventActiveForScoring } from "../src/rmroads/domain/risk";
 export { choosePrimaryAction } from "../src/rmroads/domain/recommendations";
+export {
+  calculateDecisionMetrics,
+  calculateResponseHours,
+} from "../src/rmroads/domain/metrics";
 export {
   buildPilotLeadEmail,
   parseNotificationRecipients,

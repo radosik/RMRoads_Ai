@@ -80,6 +80,7 @@ export const sendRMRoadsWeeklySummaries = async (
       rejectedCount,
       averageRiskScore,
       estimatedProtectedValue,
+      averageResponseHours: 0,
       shipments: [],
       exceptions: organization.shipmentExceptions.map((exception: any) => ({
         id: exception.id,
@@ -95,7 +96,27 @@ export const sendRMRoadsWeeklySummaries = async (
         status: exception.status,
         owner: exception.ownerName || "",
       })),
-      decisions: [],
+      decisions: decisions.map((decision: any) => ({
+        id: decision.id,
+        exceptionId: decision.shipmentExceptionId,
+        shipmentId: decision.shipmentException?.shipment?.externalId || "",
+        customer: decision.shipmentException?.shipment?.customer || "",
+        lane: decision.shipmentException?.shipment
+          ? `${decision.shipmentException.shipment.origin} -> ${decision.shipmentException.shipment.destination}`
+          : "",
+        status: decision.status,
+        scenarioAction: decision.scenarioAction,
+        owner: decision.shipmentException?.ownerName || "",
+        decidedBy: decision.decidedBy?.email || decision.decidedBy?.username || "Planner",
+        decidedAt: decision.createdAt.toISOString(),
+        responseHours: 0,
+        riskLevel: decision.shipmentException?.riskLevel || "unknown",
+        riskScore: decision.shipmentException?.riskScore || 0,
+        estimatedProtectedValue: 0,
+        note: decision.note || "",
+        outcomeStatus: decision.outcomeStatus || "pending",
+        outcomeNote: decision.outcomeNote || "",
+      })),
       alerts: organization.criticalAlerts.map((alert: any) => ({
         id: alert.id,
         createdAt: alert.createdAt.toISOString(),

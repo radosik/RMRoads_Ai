@@ -19,6 +19,7 @@ export type PilotSummaryInput = {
   rejectedCount: number;
   averageRiskScore: number;
   estimatedProtectedValue: number;
+  averageResponseHours?: number;
   shipments: ScoredShipment[];
   exceptions: ExceptionItem[];
   decisions: DecisionLogEntry[];
@@ -31,6 +32,8 @@ export function buildPilotSummaryRows(summary: PilotSummaryInput, generatedAt = 
   const latestImport = summary.importHistory[0];
   const latestDecision = summary.decisions[0];
   const criticalAlertFailures = summary.alerts.filter((alert) => alert.deliveryStatus === "Failed").length;
+  const successfulOutcomes = summary.decisions.filter((decision) => decision.outcomeStatus === "successful").length;
+  const failedOutcomes = summary.decisions.filter((decision) => decision.outcomeStatus === "failed").length;
   const topRisk = [...summary.exceptions]
     .sort((a, b) => b.riskScore - a.riskScore)
     .slice(0, 5)
@@ -49,10 +52,13 @@ export function buildPilotSummaryRows(summary: PilotSummaryInput, generatedAt = 
     ["Risk", "Average reviewed risk score", summary.averageRiskScore],
     ["Risk", "Top risk shipments", topRisk || "No exceptions yet"],
     ["Decisions", "Reviewed decisions", summary.reviewedCount],
+    ["Decisions", "Average response hours", summary.averageResponseHours || 0],
     ["Decisions", "Approved", summary.approvedCount],
     ["Decisions", "Deferred", summary.deferredCount],
     ["Decisions", "Rejected", summary.rejectedCount],
     ["Decisions", "Latest decision", latestDecision ? `${latestDecision.status} ${latestDecision.shipmentId} by ${latestDecision.decidedBy}` : "No decision yet"],
+    ["Outcomes", "Successful outcomes", successfulOutcomes],
+    ["Outcomes", "Failed outcomes", failedOutcomes],
     ["Value", "Shipment value monitored", summary.totalValue],
     ["Value", "Estimated protected value", summary.estimatedProtectedValue],
     ["Alerts", "Critical alerts logged", summary.alerts.length],
@@ -63,6 +69,8 @@ export function buildPilotSummaryRows(summary: PilotSummaryInput, generatedAt = 
 export function buildPilotSummaryEmail(summary: PilotSummaryInput, generatedAt = new Date()) {
   const activeExceptions = summary.exceptions.filter((exception) => exception.status === "new").length;
   const criticalAlertFailures = summary.alerts.filter((alert) => alert.deliveryStatus === "Failed").length;
+  const successfulOutcomes = summary.decisions.filter((decision) => decision.outcomeStatus === "successful").length;
+  const failedOutcomes = summary.decisions.filter((decision) => decision.outcomeStatus === "failed").length;
   const topRisks = [...summary.exceptions]
     .sort((a, b) => b.riskScore - a.riskScore)
     .slice(0, 3);
@@ -79,9 +87,12 @@ export function buildPilotSummaryEmail(summary: PilotSummaryInput, generatedAt =
     `Open exceptions: ${activeExceptions}`,
     `Critical exceptions: ${summary.criticalExceptionCount}`,
     `Reviewed decisions: ${summary.reviewedCount}`,
+    `Average response hours: ${summary.averageResponseHours || 0}`,
     `Approved / deferred / rejected: ${summary.approvedCount} / ${summary.deferredCount} / ${summary.rejectedCount}`,
     `Average reviewed risk score: ${summary.averageRiskScore}`,
     `Estimated protected value: ${summary.estimatedProtectedValue}`,
+    `Successful outcomes: ${successfulOutcomes}`,
+    `Failed outcomes: ${failedOutcomes}`,
     `Critical alert failures: ${criticalAlertFailures}`,
     "",
     "Top risks:",
@@ -99,9 +110,12 @@ export function buildPilotSummaryEmail(summary: PilotSummaryInput, generatedAt =
       <li><strong>Open exceptions:</strong> ${activeExceptions}</li>
       <li><strong>Critical exceptions:</strong> ${summary.criticalExceptionCount}</li>
       <li><strong>Reviewed decisions:</strong> ${summary.reviewedCount}</li>
+      <li><strong>Average response hours:</strong> ${summary.averageResponseHours || 0}</li>
       <li><strong>Approved / deferred / rejected:</strong> ${summary.approvedCount} / ${summary.deferredCount} / ${summary.rejectedCount}</li>
       <li><strong>Average reviewed risk score:</strong> ${summary.averageRiskScore}</li>
       <li><strong>Estimated protected value:</strong> ${summary.estimatedProtectedValue}</li>
+      <li><strong>Successful outcomes:</strong> ${successfulOutcomes}</li>
+      <li><strong>Failed outcomes:</strong> ${failedOutcomes}</li>
       <li><strong>Critical alert failures:</strong> ${criticalAlertFailures}</li>
     </ul>
     <p><strong>Top risks:</strong></p>

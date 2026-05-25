@@ -211,6 +211,8 @@ model ExceptionDecision {
   status                    String
   scenarioAction            String
   note                      String
+  outcomeStatus             String          @default("pending")
+  outcomeNote               String          @default("")
   recommendationInput       Json?
   recommendationOutput      Json?
 

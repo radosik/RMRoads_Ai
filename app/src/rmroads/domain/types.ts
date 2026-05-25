@@ -4,6 +4,7 @@ export type DisruptionSeverity = "low" | "medium" | "high" | "critical";
 export type DisruptionStatus = "active" | "archived";
 export type ExceptionStatus = "new" | "approved" | "deferred" | "rejected";
 export type ScenarioAction = "watch" | "notify" | "reroute" | "split" | "expedite";
+export type DecisionOutcomeStatus = "pending" | "monitoring" | "successful" | "failed";
 
 export type Shipment = {
   id: string;
@@ -30,6 +31,8 @@ export type DisruptionEvent = {
   confidence: number;
   source: string;
   status: DisruptionStatus;
+  startsAt?: string;
+  expiresAt?: string;
 };
 
 export type MatchedEvent = {
@@ -104,10 +107,13 @@ export type DecisionLogEntry = {
   owner: string;
   decidedBy: string;
   decidedAt: string;
+  responseHours: number;
   riskLevel: RiskLevel | "unknown";
   riskScore: number;
   estimatedProtectedValue: number;
   note: string;
+  outcomeStatus: DecisionOutcomeStatus;
+  outcomeNote: string;
 };
 
 export type CriticalAlertEntry = {

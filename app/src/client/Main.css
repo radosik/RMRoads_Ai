@@ -305,7 +305,7 @@
     --rmr-page-pad: 1rem;
     --rmr-panel-pad: 0.875rem;
     --rmr-queue-row-pad: 0.625rem;
-    --rmr-rail-width: clamp(13rem, 15vw, 16rem);
+    --rmr-rail-width: clamp(15rem, 18vw, 19rem);
     --rmr-scenario-pad: 0.875rem;
   }
 

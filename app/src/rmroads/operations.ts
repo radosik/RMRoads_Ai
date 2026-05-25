@@ -15,6 +15,7 @@ import type {
   UpsertRMRoadsDisruptionEvent,
   SeedRMRoadsDemoData,
   ToggleRMRoadsDisruptionEventStatus,
+  UpdateRMRoadsDecisionOutcome,
   UpdateRMRoadsAlertSettings,
   UpdateRMRoadsWorkspaceSettings,
 } from "wasp/server/operations";
@@ -27,7 +28,7 @@ import {
   calculateDecisionMetrics,
 } from "./domain/metrics";
 import { generateRecommendation } from "./domain/recommendations";
-import { createDefaultEvents, scoreShipments } from "./domain/risk";
+import { createDefaultEvents, isEventActiveForScoring, scoreShipments } from "./domain/risk";
 import { sampleShipments } from "./domain/sampleData";
 import {
   buildTenantReadinessIssues,
@@ -44,6 +45,7 @@ import type {
   CriticalAlertEntry,
   DecisionLogEntry,
   DisruptionEvent,
+  DecisionOutcomeStatus,
   ExceptionItem,
   ExceptionStatus,
   ImportHistoryEntry,
@@ -86,6 +88,7 @@ type RMRoadsDashboard = {
   rejectedCount: number;
   averageRiskScore: number;
   estimatedProtectedValue: number;
+  averageResponseHours: number;
 };
 
 type ShipmentCsvImportResult = {
@@ -167,6 +170,8 @@ const upsertDisruptionEventSchema = z.object({
   carrier: z.string().max(120).optional().default(""),
   confidence: z.number().int().min(1).max(100),
   source: z.string().min(1).max(160),
+  startsAt: z.string().max(40).optional().default(""),
+  expiresAt: z.string().max(40).optional().default(""),
 });
 
 const toggleDisruptionEventStatusSchema = z.object({
@@ -183,6 +188,12 @@ const decideExceptionSchema = z.object({
   status: z.enum(["approved", "deferred", "rejected"]),
   scenarioAction: z.enum(["watch", "notify", "reroute", "split", "expedite"]),
   note: z.string().max(2000).default(""),
+});
+
+const updateDecisionOutcomeSchema = z.object({
+  decisionId: z.string().min(1),
+  outcomeStatus: z.enum(["pending", "monitoring", "successful", "failed"]),
+  outcomeNote: z.string().max(1200).default(""),
 });
 
 const updateAlertSettingsSchema = z.object({
@@ -269,6 +280,7 @@ export const getRMRoadsDashboard: GetRMRoadsDashboard<
   const shipments = dbShipments.map(mapShipmentFromDb);
   const events = dbEvents.map(mapDisruptionEventFromDb);
   const scoredShipments = scoreShipments(shipments, events);
+  const activeEventCount = events.filter((event) => isEventActiveForScoring(event)).length;
   const persistedExceptions = new Map(dbExceptions.map((exception: any) => [`EX-${exception.shipment.externalId}`, exception]));
   const exceptions = buildExceptionQueue(scoredShipments).map((exception) => {
     const persisted = persistedExceptions.get(exception.id);
@@ -307,8 +319,11 @@ export const getRMRoadsDashboard: GetRMRoadsDashboard<
         status: decision.status,
         scenarioAction: decision.scenarioAction,
         note: decision.note || "",
+        outcomeStatus: (decision.outcomeStatus || "pending") as DecisionOutcomeStatus,
+        outcomeNote: decision.outcomeNote || "",
         decidedBy: decision.decidedBy.email || decision.decidedBy.username || "Planner",
         decidedAt: decision.createdAt.toISOString(),
+        exceptionCreatedAt: exception.createdAt.toISOString(),
       });
     }),
   ).sort((a, b) => b.decidedAt.localeCompare(a.decidedAt));
@@ -317,7 +332,7 @@ export const getRMRoadsDashboard: GetRMRoadsDashboard<
   return {
     organization,
     shipmentCount: scoredShipments.length,
-    eventCount: events.length,
+    eventCount: activeEventCount,
     exceptionCount: exceptions.length,
     criticalExceptionCount: exceptions.filter((exception) => exception.riskLevel === "critical").length,
     totalValue: scoredShipments.reduce((sum, shipment) => sum + shipment.value, 0),
@@ -552,6 +567,35 @@ export const seedRMRoadsDemoData: SeedRMRoadsDemoData<
   return getRMRoadsDashboard(undefined, context);
 };
 
+export const updateRMRoadsDecisionOutcome: UpdateRMRoadsDecisionOutcome<
+  z.infer<typeof updateDecisionOutcomeSchema>,
+  RMRoadsDashboard
+> = async (rawArgs, context) => {
+  if (!context.user) throw new HttpError(401);
+
+  const { decisionId, outcomeStatus, outcomeNote } = ensureArgsSchemaOrThrowHttpError(updateDecisionOutcomeSchema, rawArgs);
+  const organization = await getOrCreateUserOrganization(context);
+  const decision = await context.entities.ExceptionDecision.findFirst({
+    where: {
+      id: decisionId,
+      shipmentException: {
+        organizationId: organization.id,
+      },
+    },
+  });
+  if (!decision) throw new HttpError(404, "Decision not found");
+
+  await context.entities.ExceptionDecision.update({
+    where: { id: decision.id },
+    data: {
+      outcomeStatus,
+      outcomeNote: outcomeNote.trim(),
+    },
+  });
+
+  return getRMRoadsDashboard(undefined, context);
+};
+
 export const importRMRoadsShipmentCsv: ImportRMRoadsShipmentCsv<
   z.infer<typeof importShipmentCsvSchema>,
   ShipmentCsvImportResult
@@ -635,6 +679,12 @@ export const upsertRMRoadsDisruptionEvent: UpsertRMRoadsDisruptionEvent<
 
   const args = ensureArgsSchemaOrThrowHttpError(upsertDisruptionEventSchema, rawArgs);
   const organization = await getOrCreateUserOrganization(context);
+  const startsAt = parseOptionalDateArg(args.startsAt);
+  const expiresAt = parseOptionalDateArg(args.expiresAt);
+  if (startsAt && expiresAt && startsAt.getTime() >= expiresAt.getTime()) {
+    throw new HttpError(400, "Signal expiration must be after the start time.");
+  }
+
   if (args.id) {
     await context.entities.DisruptionEvent.update({
       where: { id: args.id, organizationId: organization.id },
@@ -646,6 +696,8 @@ export const upsertRMRoadsDisruptionEvent: UpsertRMRoadsDisruptionEvent<
         carrier: args.carrier || null,
         confidence: args.confidence,
         source: args.source,
+        startsAt,
+        expiresAt,
       },
     });
   } else {
@@ -660,6 +712,8 @@ export const upsertRMRoadsDisruptionEvent: UpsertRMRoadsDisruptionEvent<
         confidence: args.confidence,
         source: args.source,
         status: "active",
+        startsAt,
+        expiresAt,
       },
     });
   }
@@ -1109,6 +1163,7 @@ function emptyDashboard(): RMRoadsDashboard {
     rejectedCount: 0,
     averageRiskScore: 0,
     estimatedProtectedValue: 0,
+    averageResponseHours: 0,
   };
 }
 
@@ -1140,7 +1195,20 @@ function mapDisruptionEventFromDb(event: any): DisruptionEvent {
     confidence: event.confidence,
     source: event.source,
     status: event.status,
+    startsAt: event.startsAt ? event.startsAt.toISOString().slice(0, 10) : "",
+    expiresAt: event.expiresAt ? event.expiresAt.toISOString().slice(0, 10) : "",
   };
+}
+
+function parseOptionalDateArg(value: string | undefined) {
+  if (!value) return null;
+
+  const date = new Date(`${value.slice(0, 10)}T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime())) {
+    throw new HttpError(400, "Signal start and expiration dates must use YYYY-MM-DD format.");
+  }
+
+  return date;
 }
 
 function formatDate(value: Date) {

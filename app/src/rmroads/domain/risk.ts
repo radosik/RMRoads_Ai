@@ -50,7 +50,7 @@ export function scoreShipments(
   events: DisruptionEvent[],
   now = new Date("2026-05-23T00:00:00"),
 ): ScoredShipment[] {
-  const activeEvents = events.filter((event) => event.status === "active");
+  const activeEvents = events.filter((event) => isEventActiveForScoring(event, now));
 
   return shipments.map((shipment) => {
     const matches = activeEvents
@@ -82,6 +82,18 @@ export function scoreShipments(
       riskReasons: buildReasons(shipment, matches, priorityScore, valueScore, etaScore),
     };
   });
+}
+
+export function isEventActiveForScoring(event: DisruptionEvent, now = new Date()) {
+  if (event.status !== "active") return false;
+
+  const startsAt = parseOptionalDate(event.startsAt);
+  if (startsAt && startsAt.getTime() > now.getTime()) return false;
+
+  const expiresAt = parseOptionalDate(event.expiresAt);
+  if (expiresAt && expiresAt.getTime() < now.getTime()) return false;
+
+  return true;
 }
 
 export function getRiskLevel(score: number): RiskLevel {
@@ -168,6 +180,13 @@ function buildReasons(
 
 function normalize(value: string) {
   return value.trim().toLowerCase();
+}
+
+function parseOptionalDate(value: string | undefined) {
+  if (!value) return null;
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
 function capitalize(value: string) {
