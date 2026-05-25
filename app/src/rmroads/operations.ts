@@ -686,8 +686,12 @@ export const upsertRMRoadsDisruptionEvent: UpsertRMRoadsDisruptionEvent<
   }
 
   if (args.id) {
-    await context.entities.DisruptionEvent.update({
+    const existing = await context.entities.DisruptionEvent.findFirst({
       where: { id: args.id, organizationId: organization.id },
+    });
+    if (!existing) throw new HttpError(404, "Disruption event not found");
+    await context.entities.DisruptionEvent.update({
+      where: { id: args.id },
       data: {
         type: args.type,
         severity: args.severity,
