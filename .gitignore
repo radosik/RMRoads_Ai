@@ -13,3 +13,9 @@ build/
 !**/.env.example
 !**/.env.*.example
 *.log
+
+# Claude Code session state and user-local settings.
+# Tracked content under app/.claude/skills/ stays tracked because the directory
+# itself is not ignored — only the repo-root .claude/ and any local settings file.
+/.claude/
+**/.claude/settings.local.json
