@@ -403,7 +403,7 @@ function WorkbenchSideRail({
           <span className="size-2 rounded-full bg-secondary rmr-glow" />
           OPS CENTER
         </div>
-        <div className="rmr-data text-muted-foreground">
+        <div className="rmr-data text-muted-foreground" data-testid="rmroads-shipment-count">
           Active nodes: {dashboard?.shipmentCount || 0}
         </div>
       </div>
@@ -412,7 +412,7 @@ function WorkbenchSideRail({
       </div>
 
       <div className="grid gap-2 border-b border-border/30 p-2 lg:p-[var(--rmr-panel-pad)]">
-        <Button className="rmr-label justify-center rounded border-border/50 bg-card-subtle px-2 text-foreground hover:border-secondary hover:bg-muted lg:justify-start" onClick={handleSeedDemoData}>
+        <Button className="rmr-label justify-center rounded border-border/50 bg-card-subtle px-2 text-foreground hover:border-secondary hover:bg-muted lg:justify-start" data-testid="rmroads-seed-data-button" onClick={handleSeedDemoData}>
           <Plus className="size-4 lg:mr-2" />
           <span className="hidden lg:inline">{dashboard?.shipmentCount ? "Refresh Simulation" : "New Simulation"}</span>
         </Button>
