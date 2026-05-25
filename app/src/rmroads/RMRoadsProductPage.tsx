@@ -114,7 +114,7 @@ const scenarioRows = [
 export default function RMRoadsProductPage() {
   useScrollReveal();
   return (
-    <div className="dark bg-background text-foreground">
+    <div className="bg-background text-foreground">
       <main className="rmr-grid-bg overflow-hidden">
         <Hero />
         <Workflow />
