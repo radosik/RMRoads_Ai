@@ -148,7 +148,7 @@ action updateRMRoadsPilotLeadStatus {
 
 query getRMRoadsDashboard {
   fn: import { getRMRoadsDashboard } from "@src/rmroads/operations",
-  entities: [User, Organization, OrganizationMember, ShipmentImport, Shipment, DisruptionEvent, ShipmentException, ExceptionDecision, CriticalAlert]
+  entities: [User, Organization, OrganizationMember, WorkspaceInvitation, ShipmentImport, Shipment, DisruptionEvent, ShipmentException, ExceptionDecision, CriticalAlert]
 }
 
 query getRMRoadsWorkspaceSettings {
@@ -168,42 +168,42 @@ query getRMRoadsPendingInvitations {
 
 action seedRMRoadsDemoData {
   fn: import { seedRMRoadsDemoData } from "@src/rmroads/operations",
-  entities: [User, Organization, OrganizationMember, ShipmentImport, Shipment, DisruptionEvent, ShipmentException, ExceptionDecision, CriticalAlert]
+  entities: [User, Organization, OrganizationMember, WorkspaceInvitation, ShipmentImport, Shipment, DisruptionEvent, ShipmentException, ExceptionDecision, CriticalAlert]
 }
 
 action importRMRoadsShipmentCsv {
   fn: import { importRMRoadsShipmentCsv } from "@src/rmroads/operations",
-  entities: [User, Organization, OrganizationMember, ShipmentImport, Shipment, DisruptionEvent, ShipmentException, ExceptionDecision, CriticalAlert]
+  entities: [User, Organization, OrganizationMember, WorkspaceInvitation, ShipmentImport, Shipment, DisruptionEvent, ShipmentException, ExceptionDecision, CriticalAlert]
 }
 
 action upsertRMRoadsDisruptionEvent {
   fn: import { upsertRMRoadsDisruptionEvent } from "@src/rmroads/operations",
-  entities: [User, Organization, OrganizationMember, DisruptionEvent, ShipmentImport, Shipment, ShipmentException, ExceptionDecision, CriticalAlert]
+  entities: [User, Organization, OrganizationMember, WorkspaceInvitation, DisruptionEvent, ShipmentImport, Shipment, ShipmentException, ExceptionDecision, CriticalAlert]
 }
 
 action toggleRMRoadsDisruptionEventStatus {
   fn: import { toggleRMRoadsDisruptionEventStatus } from "@src/rmroads/operations",
-  entities: [User, Organization, OrganizationMember, DisruptionEvent, ShipmentImport, Shipment, ShipmentException, ExceptionDecision, CriticalAlert]
+  entities: [User, Organization, OrganizationMember, WorkspaceInvitation, DisruptionEvent, ShipmentImport, Shipment, ShipmentException, ExceptionDecision, CriticalAlert]
 }
 
 action assignRMRoadsExceptionOwner {
   fn: import { assignRMRoadsExceptionOwner } from "@src/rmroads/operations",
-  entities: [User, Organization, OrganizationMember, ShipmentImport, Shipment, DisruptionEvent, ShipmentException, ExceptionDecision, CriticalAlert]
+  entities: [User, Organization, OrganizationMember, WorkspaceInvitation, ShipmentImport, Shipment, DisruptionEvent, ShipmentException, ExceptionDecision, CriticalAlert]
 }
 
 action decideRMRoadsException {
   fn: import { decideRMRoadsException } from "@src/rmroads/operations",
-  entities: [User, Organization, OrganizationMember, ShipmentImport, Shipment, DisruptionEvent, ShipmentException, ExceptionDecision, CriticalAlert]
+  entities: [User, Organization, OrganizationMember, WorkspaceInvitation, ShipmentImport, Shipment, DisruptionEvent, ShipmentException, ExceptionDecision, CriticalAlert]
 }
 
 action updateRMRoadsDecisionOutcome {
   fn: import { updateRMRoadsDecisionOutcome } from "@src/rmroads/operations",
-  entities: [User, Organization, OrganizationMember, ShipmentImport, Shipment, DisruptionEvent, ShipmentException, ExceptionDecision, CriticalAlert]
+  entities: [User, Organization, OrganizationMember, WorkspaceInvitation, ShipmentImport, Shipment, DisruptionEvent, ShipmentException, ExceptionDecision, CriticalAlert]
 }
 
 action updateRMRoadsAlertSettings {
   fn: import { updateRMRoadsAlertSettings } from "@src/rmroads/operations",
-  entities: [User, Organization, OrganizationMember, ShipmentImport, Shipment, DisruptionEvent, ShipmentException, ExceptionDecision, CriticalAlert]
+  entities: [User, Organization, OrganizationMember, WorkspaceInvitation, ShipmentImport, Shipment, DisruptionEvent, ShipmentException, ExceptionDecision, CriticalAlert]
 }
 
 action updateRMRoadsWorkspaceSettings {
