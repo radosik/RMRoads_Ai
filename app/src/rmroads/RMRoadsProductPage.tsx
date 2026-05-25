@@ -17,7 +17,7 @@ import { Link as WaspRouterLink, routes } from "wasp/client/router";
 import { Button } from "../client/components/ui/button";
 import Footer from "../landing-page/components/Footer";
 import { footerNavigation } from "../landing-page/contentSections";
-import { RMRoadsWorldMap } from "./RMRoadsWorldMap";
+import { RMRoadsWorkbenchPreview } from "./RMRoadsWorkbenchPreview";
 
 function useScrollReveal() {
   useEffect(() => {
@@ -156,25 +156,9 @@ function Hero() {
           </div>
         </div>
 
-        <div className="rmr-reveal rmr-panel relative min-h-[34rem] overflow-hidden bg-[#03111f] p-0 text-slate-100">
-          <div className="absolute inset-0 rmr-grid-bg opacity-50" />
-          <RMRoadsWorldMap />
-          <div className="absolute left-4 top-4 w-[min(20rem,calc(100%-2rem))] rounded border border-destructive/40 bg-background/85 p-4 text-foreground backdrop-blur">
-            <div className="rmr-label flex items-center gap-2 text-destructive">
-              <AlertTriangle className="size-4" /> Node delay: SHA-T1
-            </div>
-            <div className="rmr-data mt-3 text-muted-foreground">ETA Impact: +14h</div>
-          </div>
-          <div className="absolute bottom-4 right-4 w-[min(22rem,calc(100%-2rem))] rounded border border-secondary/40 bg-background/85 p-4 text-foreground backdrop-blur">
-            <div className="mb-3 flex items-center justify-between border-b border-border/30 pb-3">
-              <span className="rmr-label text-secondary">Route opti</span>
-              <span className="rmr-label rounded bg-secondary/15 px-2 py-0.5 text-secondary">ACTIVE</span>
-            </div>
-            <div className="rmr-data grid gap-1 text-muted-foreground">
-              <span>&gt; Analyzing 4,120 lanes</span>
-              <span>&gt; Rerouting... OK</span>
-            </div>
-          </div>
+        <div className="rmr-reveal rmr-panel relative min-h-[34rem] overflow-hidden bg-[#03111f] text-slate-100">
+          <div className="pointer-events-none absolute inset-0 rmr-grid-bg opacity-40" />
+          <RMRoadsWorkbenchPreview />
         </div>
       </div>
     </section>
