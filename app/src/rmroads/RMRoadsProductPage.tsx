@@ -228,7 +228,7 @@ function ProblemSection() {
         </div>
         <div className="mt-12 grid gap-4 md:grid-cols-3">
           {problems.map((p) => (
-            <div className="rmr-reveal rmr-panel min-w-0 p-6" key={p.label}>
+            <div className="rmr-reveal rmr-panel min-w-0 p-6 transition-[transform,border-color] duration-200 hover:-translate-y-0.5 hover:border-secondary/40" key={p.label}>
               <div className="flex items-baseline gap-1">
                 <span
                   className="text-5xl font-bold tracking-tight text-foreground tabular-nums"
@@ -263,7 +263,7 @@ function Workflow() {
         </div>
         <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {workflow.map((item, index) => (
-            <div className="rmr-reveal rmr-panel min-w-0 p-5" key={item.title}>
+            <div className="rmr-reveal rmr-panel min-w-0 p-5 transition-[transform,border-color] duration-200 hover:-translate-y-0.5 hover:border-secondary/40" key={item.title}>
               <div className="mb-5 flex items-center justify-between">
                 <div className="flex size-10 items-center justify-center rounded border border-secondary/30 bg-secondary/10 text-secondary">
                   <item.icon className="size-5" />
@@ -360,7 +360,7 @@ function ControlLayer() {
           ["Explainable scoring", "Risk reasons stay visible beside the recommendation so the team can challenge bad assumptions."],
           ["Tenant-scoped data", "Workspace data is tied to the organization, with admin-only settings and pre-pilot access review."],
         ].map(([title, text]) => (
-          <div className="rmr-reveal rmr-panel p-6" key={title}>
+          <div className="rmr-reveal rmr-panel p-6 transition-[transform,border-color] duration-200 hover:-translate-y-0.5 hover:border-secondary/40" key={title}>
             <ShieldCheck className="mb-5 size-9 text-secondary" />
             <h3 className="text-lg font-semibold">{title}</h3>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">{text}</p>
