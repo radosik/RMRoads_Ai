@@ -117,6 +117,7 @@ export default function RMRoadsProductPage() {
     <div className="bg-background text-foreground">
       <main className="rmr-grid-bg overflow-hidden">
         <Hero />
+        <ProblemSection />
         <Workflow />
         <WorkbenchPreview />
         <ControlLayer />
@@ -159,6 +160,58 @@ function Hero() {
         <div className="rmr-reveal rmr-panel relative min-h-[34rem] overflow-hidden bg-[#03111f] text-slate-100">
           <div className="pointer-events-none absolute inset-0 rmr-grid-bg opacity-40" />
           <RMRoadsWorkbenchPreview />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ProblemSection() {
+  const problems = [
+    {
+      stat: "37",
+      unit: "min",
+      label: "Avg. time to detect a shipment exception today",
+      detail: "Planners scan carrier portals, spreadsheets, and email threads to spot risk.",
+    },
+    {
+      stat: "5+",
+      unit: "tools",
+      label: "Systems touched before a recovery decision",
+      detail: "TMS, ERP, customer CRM, supplier emails, and offline notes all weigh in.",
+    },
+    {
+      stat: "0",
+      unit: "audit",
+      label: "Decisions captured with reasoning for the next review",
+      detail: "Outcomes vanish in chat threads — there is no system of record for response.",
+    },
+  ];
+  return (
+    <section className="rmr-reveal-section border-b border-border/30 px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+      <div className="mx-auto max-w-7xl">
+        <div className="max-w-3xl">
+          <span className="rmr-reveal rmr-label inline-flex items-center gap-2 rounded-full border border-border/40 bg-card-subtle/60 px-3 py-1 text-muted-foreground">
+            The pain point
+          </span>
+          <h2 className="rmr-reveal mt-5 text-3xl font-semibold tracking-tight sm:text-4xl lg:text-[2.75rem] lg:leading-[1.1]">
+            Disruptions are not the hard part. Deciding what to do next is.
+          </h2>
+          <p className="rmr-reveal mt-5 text-base leading-7 text-muted-foreground sm:text-lg">
+            Port congestion, carrier delays, weather, and customs issues surface in too many places and too late. By the time the team agrees on a response, the customer is already feeling the delay.
+          </p>
+        </div>
+        <div className="mt-12 grid gap-4 md:grid-cols-3">
+          {problems.map((p) => (
+            <div className="rmr-reveal rmr-panel min-w-0 p-6" key={p.label}>
+              <div className="flex items-baseline gap-2">
+                <span className="text-5xl font-bold tracking-tight text-foreground">{p.stat}</span>
+                <span className="rmr-label text-muted-foreground">{p.unit}</span>
+              </div>
+              <div className="mt-4 text-sm font-semibold text-foreground">{p.label}</div>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">{p.detail}</p>
+            </div>
+          ))}
         </div>
       </div>
     </section>
