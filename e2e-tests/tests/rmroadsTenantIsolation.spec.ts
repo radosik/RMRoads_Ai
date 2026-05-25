@@ -31,6 +31,38 @@ async function readShipmentCount(page: Page): Promise<number> {
   return Number(match[1]);
 }
 
+type ProbeOutcome =
+  | { ok: true; data: unknown }
+  | { ok: false; status: number; message: string };
+
+async function callOperationAs(
+  page: Page,
+  operationName: string,
+  args: unknown,
+): Promise<ProbeOutcome> {
+  return page.evaluate(
+    async ({ name, args }) => {
+      try {
+        const ops = await import("wasp/client/operations");
+        const fn = (ops as Record<string, unknown>)[name];
+        if (typeof fn !== "function") {
+          return { ok: false, status: 0, message: `Operation not found: ${name}` };
+        }
+        const data = await (fn as (a: unknown) => Promise<unknown>)(args);
+        return { ok: true, data };
+      } catch (err: unknown) {
+        const e = err as { statusCode?: number; status?: number; message?: string };
+        return {
+          ok: false,
+          status: e.statusCode ?? e.status ?? 0,
+          message: e.message ?? String(err),
+        };
+      }
+    },
+    { name: operationName, args },
+  );
+}
+
 test.describe.configure({ mode: "serial" });
 
 test.describe("RMRoads tenant isolation", () => {
@@ -67,6 +99,62 @@ test.describe("RMRoads tenant isolation", () => {
       await expect(pageA.getByTestId("rmroads-shipment-count")).toBeVisible();
       const countAAfter = await readShipmentCount(pageA);
       expect(countAAfter).toBe(countA);
+    } finally {
+      await contextA.close();
+      await contextB.close();
+    }
+  });
+
+  test("user B cannot mutate user A's disruption events", async ({ browser }) => {
+    const contextA = await browser.newContext();
+    const contextB = await browser.newContext();
+
+    try {
+      const pageA = await contextA.newPage();
+      const pageB = await contextB.newPage();
+      const userA = createRandomUser();
+      const userB = createRandomUser();
+
+      await signUserUp({ page: pageA, user: userA });
+      await signUserUp({ page: pageB, user: userB });
+      await signIn(pageA, userA);
+      await signIn(pageB, userB);
+
+      await openRMRoads(pageA);
+      await seedDemoData(pageA);
+      await openRMRoads(pageB);
+      await seedDemoData(pageB);
+
+      const aDashboard = await pageA.evaluate(async () => {
+        const ops = await import("wasp/client/operations");
+        return ops.getRMRoadsDashboard();
+      });
+
+      const foreignEventId = aDashboard?.disruptionEvents?.[0]?.id;
+      expect(foreignEventId, "user A must have at least one disruption event after seeding").toBeTruthy();
+
+      const toggleOutcome = await callOperationAs(
+        pageB,
+        "toggleRMRoadsDisruptionEventStatus",
+        { id: foreignEventId },
+      );
+      expect(toggleOutcome.ok).toBe(false);
+      if (!toggleOutcome.ok) {
+        expect(toggleOutcome.status).toBe(404);
+      }
+
+      const upsertOutcome = await callOperationAs(pageB, "upsertRMRoadsDisruptionEvent", {
+        id: foreignEventId,
+        type: "Probe",
+        severity: "low",
+        affectedText: "Cross-tenant probe attempt",
+        confidence: 50,
+        source: "playwright test",
+      });
+      expect(upsertOutcome.ok).toBe(false);
+      if (!upsertOutcome.ok) {
+        expect(upsertOutcome.status).toBe(404);
+      }
     } finally {
       await contextA.close();
       await contextB.close();
