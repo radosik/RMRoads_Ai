@@ -14,7 +14,9 @@ build/
 !**/.env.*.example
 *.log
 
-# Claude Code state and agent operating manuals — ignore at any depth.
+# Claude Code state, agent skill directories, and agent operating manuals.
+# Ignore at any depth.
 .claude/
+.agents/
 CLAUDE.md
 AGENTS.md
