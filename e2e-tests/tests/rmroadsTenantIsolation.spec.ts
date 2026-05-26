@@ -196,4 +196,79 @@ test.describe("RMRoads tenant isolation", () => {
       await contextB.close();
     }
   });
+
+  test("user B cannot mutate user A's decisions or invitations", async ({ browser }) => {
+    const contextA = await browser.newContext();
+    const contextB = await browser.newContext();
+
+    try {
+      const pageA = await contextA.newPage();
+      const pageB = await contextB.newPage();
+      const userA = createRandomUser();
+      const userB = createRandomUser();
+
+      await signUp(pageA, userA);
+      await signUp(pageB, userB);
+      await signIn(pageA, userA);
+      await signIn(pageB, userB);
+
+      await openRMRoads(pageA);
+      await seedDemoData(pageA);
+      await openRMRoads(pageB);
+      await seedDemoData(pageB);
+
+      const aDashboard = await fetchDashboardAs(pageA);
+      const aExceptionId: string | undefined = aDashboard?.exceptions?.[0]?.id;
+      expect(aExceptionId, "user A must have at least one exception after seeding").toBeTruthy();
+
+      const decideResp = await callOperationAs(pageA, "decideRMRoadsException", {
+        exceptionId: aExceptionId,
+        status: "approved",
+        scenarioAction: "expedite",
+        note: "",
+      });
+      expect(decideResp.ok(), "user A decide must succeed").toBe(true);
+      const decidedDashboard = (await decideResp.json())?.json ?? (await decideResp.json());
+      const foreignDecisionId: string | undefined = decidedDashboard?.decisions?.[0]?.id;
+      expect(foreignDecisionId, "user A must now have a decision id").toBeTruthy();
+
+      const inviteResp = await callOperationAs(pageA, "createRMRoadsWorkspaceInvitation", {
+        email: `probe-${Date.now()}@test.com`,
+        role: "planner",
+      });
+      expect(inviteResp.ok(), "user A invite create must succeed").toBe(true);
+      const inviteSettings = (await inviteResp.json())?.json;
+      const foreignInvitationId: string | undefined = inviteSettings?.invitations?.[0]?.id;
+      expect(foreignInvitationId, "user A must now have a pending invitation").toBeTruthy();
+
+      const outcomeProbe = await callOperationAs(pageB, "updateRMRoadsDecisionOutcome", {
+        decisionId: foreignDecisionId,
+        outcomeStatus: "successful",
+        outcomeNote: "",
+      });
+      expect(
+        outcomeProbe.status(),
+        "user B outcome update on user A's decision must be rejected",
+      ).toBe(404);
+
+      const cancelProbe = await callOperationAs(pageB, "cancelRMRoadsWorkspaceInvitation", {
+        invitationId: foreignInvitationId,
+      });
+      expect(
+        cancelProbe.status(),
+        "user B cancel on user A's invitation must be rejected",
+      ).toBe(404);
+
+      const resendProbe = await callOperationAs(pageB, "resendRMRoadsWorkspaceInvitation", {
+        invitationId: foreignInvitationId,
+      });
+      expect(
+        resendProbe.status(),
+        "user B resend on user A's invitation must be rejected",
+      ).toBe(404);
+    } finally {
+      await contextA.close();
+      await contextB.close();
+    }
+  });
 });
