@@ -603,9 +603,9 @@ function WorkbenchContextBar({ dashboard, dashboardQuery, exceptions, handleDown
   return (
     <div className="flex h-[var(--rmr-context-height)] shrink-0 items-center justify-between gap-4 border-b border-border/30 bg-card-subtle/85 px-[var(--rmr-page-pad)] backdrop-blur dark:bg-[#010f1f]/70">
       <div className="flex min-w-0 flex-wrap items-center gap-4">
-        <h1 className="text-lg font-semibold leading-6">Exception Queue</h1>
+        <h1 className="text-lg font-semibold leading-none tracking-tight">Exception Queue</h1>
         <div className="hidden h-5 w-px bg-border/60 sm:block" />
-        <div className="rmr-data flex flex-wrap items-center gap-4">
+        <div className="rmr-data flex flex-wrap items-center gap-4 leading-none">
           <span className="flex items-center gap-2 text-destructive">
             <span className="size-2 rounded-full bg-destructive" /> {criticalCount} Critical
           </span>
