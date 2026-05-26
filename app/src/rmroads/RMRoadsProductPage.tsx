@@ -15,8 +15,7 @@ import {
 } from "lucide-react";
 import { Link as WaspRouterLink, routes } from "wasp/client/router";
 import { Button } from "../client/components/ui/button";
-import Footer from "../landing-page/components/Footer";
-import { footerNavigation } from "../landing-page/contentSections";
+import { RMRoadsFooter } from "./RMRoadsFooter";
 import { RMRoadsWorkbenchPreview } from "./RMRoadsWorkbenchPreview";
 
 function useScrollReveal() {
@@ -141,7 +140,7 @@ export default function RMRoadsProductPage() {
         <ControlLayer />
         <FinalCta />
       </main>
-      <Footer footerNavigation={footerNavigation} />
+      <RMRoadsFooter />
     </div>
   );
 }
