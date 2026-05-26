@@ -4,8 +4,13 @@ import { Outlet, useLocation } from "react-router";
 import { routes } from "wasp/client/router";
 import { Toaster } from "../client/components/ui/toaster";
 import "./Main.css";
+import { useAuth } from "wasp/client/auth";
 import NavBar from "./components/NavBar/NavBar";
-import { rmroadsNavigationItems } from "./components/NavBar/constants";
+import {
+  rmroadsAdminNav,
+  rmroadsPlannerNav,
+  rmroadsPublicNav,
+} from "./components/NavBar/constants";
 import CookieConsentBanner from "./components/cookie-consent/Banner";
 
 /**
@@ -16,12 +21,20 @@ export default function App() {
   const location = useLocation();
   const pageTransitionRef = useRef<HTMLDivElement | null>(null);
 
+  const { data: user } = useAuth();
+
   const shouldDisplayAppNavBar = useMemo(() => {
     return (
       location.pathname !== routes.LoginRoute.build() &&
       location.pathname !== routes.SignupRoute.build()
     );
   }, [location]);
+
+  const navigationItems = useMemo(() => {
+    if (!user) return rmroadsPublicNav;
+    if (user.isAdmin) return rmroadsAdminNav;
+    return rmroadsPlannerNav;
+  }, [user]);
 
   const isAdminDashboard = useMemo(() => {
     return location.pathname.startsWith("/admin");
@@ -72,7 +85,7 @@ export default function App() {
           ) : (
             <>
               {shouldDisplayAppNavBar && (
-                <NavBar navigationItems={rmroadsNavigationItems} />
+                <NavBar navigationItems={navigationItems} />
               )}
               <div className={isWorkbenchRoute ? "mx-auto w-full" : "mx-auto max-w-(--breakpoint-2xl)"}>
                 <Outlet />

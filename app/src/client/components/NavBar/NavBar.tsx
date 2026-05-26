@@ -1,4 +1,4 @@
-import { Database, LogIn, Menu } from "lucide-react";
+import { LogIn, Menu } from "lucide-react";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { Link as ReactRouterLink } from "react-router";
 import { useAuth } from "wasp/client/auth";
@@ -70,20 +70,9 @@ export default function NavBar({
             <div className="flex items-center gap-6">
               <WaspRouterLink
                 to={routes.LandingPageRoute.to}
-                className="text-foreground hover:text-secondary flex items-center transition-colors duration-300 ease-in-out"
+                className="flex items-center transition-colors duration-300 ease-in-out"
               >
-                <NavLogo isScrolled={isScrolled} />
-                <span
-                  className={cn(
-                    "font-semibold leading-6 text-foreground transition-all duration-300",
-                    {
-                      "ml-2 text-sm": !isScrolled,
-                      "ml-2 text-xs": isScrolled,
-                    },
-                  )}
-                >
-                  RMRoads AI
-                </span>
+                <BrandMark isScrolled={isScrolled} />
               </WaspRouterLink>
 
               <ul className="ml-4 hidden items-center gap-6 lg:flex">
@@ -176,7 +165,7 @@ function NavBarMobileMenu({
             <SheetTitle className="flex items-center">
               <WaspRouterLink to={routes.LandingPageRoute.to}>
                 <span className="sr-only">RMRoads AI</span>
-                <NavLogo isScrolled={false} />
+                <BrandMark isScrolled={false} />
               </WaspRouterLink>
             </SheetTitle>
           </SheetHeader>
@@ -239,17 +228,31 @@ function renderNavigationItems(
   });
 }
 
-const NavLogo = ({ isScrolled }: { isScrolled: boolean }) => (
-  <span
-    className={cn(
-      "rmr-glow inline-flex items-center justify-center rounded border border-secondary/40 bg-secondary/10 text-secondary transition-all duration-500",
-      {
-        "size-8": !isScrolled,
-        "size-7": isScrolled,
-      },
-    )}
-    aria-hidden="true"
-  >
-    <Database className={cn({ "size-4": !isScrolled, "size-3.5": isScrolled })} />
-  </span>
-);
+function BrandMark({ isScrolled }: { isScrolled: boolean }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-baseline font-bold tracking-tight transition-all duration-300",
+        {
+          "text-[1.15rem]": !isScrolled,
+          "text-base": isScrolled,
+        },
+      )}
+    >
+      <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
+        RMRoads
+      </span>
+      <span
+        className={cn(
+          "rmr-glow ml-1.5 bg-gradient-to-br from-secondary to-secondary/60 bg-clip-text font-extrabold uppercase tracking-[0.14em] text-transparent",
+          {
+            "text-[0.95rem]": !isScrolled,
+            "text-xs": isScrolled,
+          },
+        )}
+      >
+        AI
+      </span>
+    </span>
+  );
+}
