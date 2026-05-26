@@ -372,6 +372,7 @@ export default function RMRoadsDashboardPage() {
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
             <WorkbenchExceptionQueue
               filteredExceptions={filteredExceptions}
+              hasShipments={Boolean(dashboard?.shipmentCount)}
               carrierFilter={carrierFilter}
               carrierOptions={carrierOptions}
               modeFilter={modeFilter}
@@ -650,6 +651,7 @@ function WorkbenchExceptionQueue({
   carrierFilter,
   carrierOptions,
   filteredExceptions,
+  hasShipments,
   modeFilter,
   modeOptions,
   ownerFilter,
@@ -759,7 +761,11 @@ function WorkbenchExceptionQueue({
           </button>
         ))}
         {!filteredExceptions.length ? (
-          <div className="p-8 text-center text-sm text-muted-foreground">No exceptions match the current filters.</div>
+          <div className="p-8 text-center text-sm text-muted-foreground">
+            {hasShipments
+              ? "No exceptions match the current filters."
+              : "No shipments yet. Use the side rail to load demo data or import a CSV — the exception queue will populate once shipments are scored."}
+          </div>
         ) : null}
       </div>
     </section>
