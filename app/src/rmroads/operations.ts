@@ -28,6 +28,7 @@ import {
   calculateDecisionMetrics,
 } from "./domain/metrics";
 import { generateRecommendation } from "./domain/recommendations";
+import { generateLlmRecommendation, resolveLlmMode } from "./llmRecommendationProvider";
 import { createDefaultEvents, isEventActiveForScoring, scoreShipments } from "./domain/risk";
 import { sampleShipments } from "./domain/sampleData";
 import {
@@ -789,6 +790,37 @@ export const decideRMRoadsException: DecideRMRoadsException<
   if (!persistedException) throw new HttpError(404, "Exception not persisted yet");
 
   const recommendation: Recommendation = generateRecommendation(exception, shipment);
+  const llmMode = resolveLlmMode(process.env.RMROADS_LLM_RECOMMENDATIONS_MODE);
+  try {
+    const llmResult = await generateLlmRecommendation(
+      {
+        shipmentExternalId: shipment.id,
+        customer: shipment.customer,
+        lane: `${shipment.origin} -> ${shipment.destination}`,
+        priority: shipment.priority,
+        value: shipment.value,
+        riskLevel: exception.riskLevel,
+        riskScore: exception.riskScore,
+        riskReason: exception.reason,
+      },
+      llmMode,
+    );
+    if (llmResult) {
+      // Overwrite the narrative fields with the LLM output but keep the
+      // deterministic scenarios — the LLM only proposes a primary action and
+      // rationale, scenarios stay locally-computed for now.
+      recommendation.primaryAction = llmResult.output.primaryAction;
+      recommendation.confidence = llmResult.output.confidence;
+      recommendation.summary = llmResult.output.summary;
+      recommendation.rationale = llmResult.output.rationale;
+      recommendation.assumptions = llmResult.output.assumptions;
+      recommendation.source = llmResult.source;
+      recommendation.latencyMs = llmResult.latencyMs;
+    }
+  } catch (err) {
+    console.warn("[decideRMRoadsException] LLM recommendation failed, using deterministic", err);
+  }
+
   await context.entities.ExceptionDecision.create({
     data: {
       shipmentException: { connect: { id: persistedException.id } },

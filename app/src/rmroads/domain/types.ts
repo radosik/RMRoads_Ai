@@ -77,6 +77,8 @@ export type RecommendationScenario = {
   recommended: boolean;
 };
 
+export type RecommendationSource = "deterministic" | "llm-dummy" | "llm-openai";
+
 export type Recommendation = {
   exceptionId: string;
   shipmentId: string;
@@ -85,6 +87,9 @@ export type Recommendation = {
   summary: string;
   assumptions: string[];
   scenarios: RecommendationScenario[];
+  source: RecommendationSource;
+  rationale?: string;
+  latencyMs?: number;
 };
 
 export type ImportHistoryEntry = {

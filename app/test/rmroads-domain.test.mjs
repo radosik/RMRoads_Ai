@@ -393,3 +393,62 @@ test("weekly summary send guard prevents duplicate sends in the same UTC week", 
     true,
   );
 });
+
+const sampleLlmInput = {
+  shipmentExternalId: "S-1",
+  customer: "Northstar Retail",
+  lane: "Veracruz MX -> Atlanta GA",
+  priority: "critical",
+  value: 185000,
+  riskLevel: "critical",
+  riskScore: 95,
+  riskReason: "Port congestion",
+};
+
+test("LLM recommendation prompt includes shipment context and response schema", () => {
+  const prompt = domain.buildLlmRecommendationPrompt(sampleLlmInput);
+  assert.match(prompt.system, /decision support/i);
+  assert.match(prompt.user, /S-1/);
+  assert.match(prompt.user, /Northstar Retail/);
+  assert.match(prompt.user, /Port congestion/);
+  assert.match(prompt.user, /primaryAction/);
+  assert.match(prompt.user, /expedite/);
+});
+
+test("dummy LLM recommendation produces a valid, plausible output", () => {
+  const output = domain.generateDummyLlmRecommendation(sampleLlmInput);
+  assert.equal(domain.isLlmRecommendationOutput(output), true);
+  assert.equal(output.primaryAction, "expedite");
+  assert.equal(output.confidence, "High");
+  assert.ok(output.assumptions.length >= 2);
+  assert.ok(output.alternatives.length >= 1);
+});
+
+test("dummy LLM recommendation picks safer actions for lower-risk shipments", () => {
+  const lowRiskInput = {
+    ...sampleLlmInput,
+    riskLevel: "high",
+    riskScore: 72,
+    priority: "standard",
+    value: 25000,
+  };
+  const output = domain.generateDummyLlmRecommendation(lowRiskInput);
+  assert.equal(output.primaryAction, "notify");
+  assert.equal(output.confidence, "Medium");
+});
+
+test("LLM output validator rejects malformed shapes", () => {
+  assert.equal(domain.isLlmRecommendationOutput(null), false);
+  assert.equal(domain.isLlmRecommendationOutput({ primaryAction: "teleport" }), false);
+  assert.equal(
+    domain.isLlmRecommendationOutput({
+      primaryAction: "reroute",
+      confidence: "Maybe",
+      summary: "x",
+      rationale: "y",
+      assumptions: [],
+      alternatives: [],
+    }),
+    false,
+  );
+});

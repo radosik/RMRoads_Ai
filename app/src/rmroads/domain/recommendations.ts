@@ -21,6 +21,7 @@ export function generateRecommendation(exception: ExceptionItem, shipment: Shipm
       "Recommendation is decision support only and requires planner approval.",
     ],
     scenarios: buildScenarios(exception, shipment, primaryAction),
+    source: "deterministic",
   };
 }
 

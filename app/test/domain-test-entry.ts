@@ -30,3 +30,8 @@ export {
   canMutateWorkspaceData,
   evaluateInvitationAcceptance,
 } from "../src/rmroads/domain/tenantSecurity";
+export {
+  buildLlmRecommendationPrompt,
+  generateDummyLlmRecommendation,
+  isLlmRecommendationOutput,
+} from "../src/rmroads/domain/llmRecommendations";
