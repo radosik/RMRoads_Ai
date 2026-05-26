@@ -32,6 +32,7 @@ import { Button } from "../client/components/ui/button";
 import { Input } from "../client/components/ui/input";
 import { Label } from "../client/components/ui/label";
 import { Textarea } from "../client/components/ui/textarea";
+import { useToast } from "../client/hooks/use-toast";
 import { requiredShipmentCsvFields, type ImportError } from "./domain/csv";
 import { buildPilotSummaryRows } from "./domain/pilotSummary";
 import { generateRecommendation } from "./domain/recommendations";
@@ -113,6 +114,7 @@ export default function RMRoadsDashboardPage() {
   const [decisionError, setDecisionError] = useState("");
   const [signalForm, setSignalForm] = useState(defaultSignalForm);
   const [signalMessage, setSignalMessage] = useState("");
+  const { toast } = useToast();
   const dashboardQuery = useQuery(getRMRoadsDashboard);
   const dashboard = dashboardQuery.data;
   const shipments = dashboard?.shipments || [];
@@ -166,10 +168,19 @@ export default function RMRoadsDashboardPage() {
   };
 
   const handleSeedDemoData = async () => {
-    await seedRMRoadsDemoData();
-    setImportMessage("");
-    setImportErrors([]);
-    await refreshDashboard();
+    try {
+      await seedRMRoadsDemoData();
+      setImportMessage("");
+      setImportErrors([]);
+      await refreshDashboard();
+      toast({ title: "Demo data loaded", description: "Sample shipments and signals are now in the workspace." });
+    } catch (error) {
+      toast({
+        title: "Could not load demo data",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleCsvImport = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -256,15 +267,26 @@ export default function RMRoadsDashboardPage() {
       return;
     }
 
-    await decideRMRoadsException({
-      exceptionId: selectedException.id,
-      status,
-      scenarioAction: selectedAction,
-      note: decisionNote,
-    });
-    setDecisionError("");
-    setDecisionNote("");
-    await refreshDashboard();
+    try {
+      await decideRMRoadsException({
+        exceptionId: selectedException.id,
+        status,
+        scenarioAction: selectedAction,
+        note: decisionNote,
+      });
+      setDecisionError("");
+      setDecisionNote("");
+      await refreshDashboard();
+      const verb = status === "approved" ? "Approved" : status === "deferred" ? "Deferred" : "Rejected";
+      toast({
+        title: `${verb} · ${selectedException.shipmentId}`,
+        description: `Recorded ${selectedAction} for ${selectedException.customer}.`,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      setDecisionError(message);
+      toast({ title: "Decision could not be saved", description: message, variant: "destructive" });
+    }
   };
 
   const handleDecisionOutcome = async ({
@@ -276,12 +298,24 @@ export default function RMRoadsDashboardPage() {
     outcomeNote: string;
     outcomeStatus: "pending" | "monitoring" | "successful" | "failed";
   }) => {
-    await updateRMRoadsDecisionOutcome({
-      decisionId,
-      outcomeNote,
-      outcomeStatus,
-    });
-    await refreshDashboard();
+    try {
+      await updateRMRoadsDecisionOutcome({
+        decisionId,
+        outcomeNote,
+        outcomeStatus,
+      });
+      await refreshDashboard();
+      toast({
+        title: "Outcome saved",
+        description: `Marked as ${outcomeStatus}.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Could not save outcome",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
