@@ -476,14 +476,14 @@ function WorkbenchSideRail({
           className="h-8 text-xs"
           placeholder="Signal type"
           value={signalForm.type}
-          onChange={(event) => onSignalChange((current: typeof defaultSignalForm) => ({ ...current, type: event.currentTarget.value }))}
+          onChange={(event) => { const value = event.currentTarget.value; onSignalChange((current: typeof defaultSignalForm) => ({ ...current, type: value })); }}
         />
         <Input
           aria-label="Affected lane, carrier, or place"
           className="h-8 text-xs"
           placeholder="Affected lane, carrier, or place"
           value={signalForm.affectedText}
-          onChange={(event) => onSignalChange((current: typeof defaultSignalForm) => ({ ...current, affectedText: event.currentTarget.value }))}
+          onChange={(event) => { const value = event.currentTarget.value; onSignalChange((current: typeof defaultSignalForm) => ({ ...current, affectedText: value })); }}
         />
         <div className="grid grid-cols-1 gap-2 xl:grid-cols-[minmax(0,1fr)_5.25rem]">
           <NativeSelect
@@ -499,7 +499,7 @@ function WorkbenchSideRail({
             max={100}
             type="number"
             value={signalForm.confidence}
-            onChange={(event) => onSignalChange((current: typeof defaultSignalForm) => ({ ...current, confidence: Number(event.currentTarget.value) || 1 }))}
+            onChange={(event) => { const value = event.currentTarget.value; onSignalChange((current: typeof defaultSignalForm) => ({ ...current, confidence: Number(value) || 1 })); }}
           />
         </div>
         <div className="grid gap-2">
@@ -510,7 +510,7 @@ function WorkbenchSideRail({
               className="h-8 min-w-0 text-xs"
               type="date"
               value={signalForm.startsAt}
-              onChange={(event) => onSignalChange((current: typeof defaultSignalForm) => ({ ...current, startsAt: event.currentTarget.value }))}
+              onChange={(event) => { const value = event.currentTarget.value; onSignalChange((current: typeof defaultSignalForm) => ({ ...current, startsAt: value })); }}
             />
           </label>
           <label className="grid min-w-0 gap-1 text-xs font-semibold text-muted-foreground">
@@ -520,7 +520,7 @@ function WorkbenchSideRail({
               className="h-8 min-w-0 text-xs"
               type="date"
               value={signalForm.expiresAt}
-              onChange={(event) => onSignalChange((current: typeof defaultSignalForm) => ({ ...current, expiresAt: event.currentTarget.value }))}
+              onChange={(event) => { const value = event.currentTarget.value; onSignalChange((current: typeof defaultSignalForm) => ({ ...current, expiresAt: value })); }}
             />
           </label>
         </div>
