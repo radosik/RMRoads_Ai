@@ -166,6 +166,11 @@ query getRMRoadsPendingInvitations {
   entities: [User, Organization, WorkspaceInvitation]
 }
 
+query getRMRoadsRecommendationLog {
+  fn: import { getRMRoadsRecommendationLog } from "@src/rmroads/operations",
+  entities: [User, Organization, ExceptionDecision, ShipmentException, Shipment]
+}
+
 action seedRMRoadsDemoData {
   fn: import { seedRMRoadsDemoData } from "@src/rmroads/operations",
   entities: [User, Organization, OrganizationMember, WorkspaceInvitation, ShipmentImport, Shipment, DisruptionEvent, ShipmentException, ExceptionDecision, CriticalAlert]
@@ -430,6 +435,12 @@ route AdminTenantHealthRoute { path: "/admin/tenant-health", to: AdminTenantHeal
 page AdminTenantHealthPage {
   authRequired: true,
   component: import AdminTenantHealth from "@src/admin/dashboards/tenant-health/TenantHealthPage"
+}
+
+route AdminRecommendationsRoute { path: "/admin/recommendations", to: AdminRecommendationsPage }
+page AdminRecommendationsPage {
+  authRequired: true,
+  component: import AdminRecommendations from "@src/admin/dashboards/recommendations/RecommendationsPage"
 }
 
 route AdminSettingsRoute { path: "/admin/settings", to: AdminSettingsPage }

@@ -8,6 +8,7 @@ import type {
   DecideRMRoadsException,
   GetRMRoadsDashboard,
   GetRMRoadsPendingInvitations,
+  GetRMRoadsRecommendationLog,
   GetRMRoadsTenantHealth,
   GetRMRoadsWorkspaceSettings,
   ImportRMRoadsShipmentCsv,
@@ -474,6 +475,85 @@ export const getRMRoadsTenantHealth: GetRMRoadsTenantHealth<
   );
 
   return rows;
+};
+
+type AdminRecommendationLogRow = {
+  id: string;
+  decidedAt: string;
+  organizationName: string;
+  organizationSlug: string;
+  source: string;
+  primaryAction: string;
+  confidence: string;
+  summary: string;
+  rationale: string;
+  exceptionLane: string;
+  exceptionRiskLevel: string;
+  decisionStatus: string;
+  latencyMs: number | null;
+};
+
+type AdminRecommendationLogResponse = {
+  totals: {
+    deterministic: number;
+    llmDummy: number;
+    llmOpenai: number;
+    unknown: number;
+    overall: number;
+  };
+  recent: AdminRecommendationLogRow[];
+  windowSize: number;
+};
+
+export const getRMRoadsRecommendationLog: GetRMRoadsRecommendationLog<
+  void,
+  AdminRecommendationLogResponse
+> = async (_args, context) => {
+  if (!context.user) throw new HttpError(401);
+  if (!context.user.isAdmin) throw new HttpError(403);
+
+  const windowSize = 100;
+  const decisions = await context.entities.ExceptionDecision.findMany({
+    orderBy: { createdAt: "desc" },
+    take: windowSize,
+    include: {
+      shipmentException: {
+        include: {
+          organization: true,
+          shipment: true,
+        },
+      },
+    },
+  });
+
+  const totals = { deterministic: 0, llmDummy: 0, llmOpenai: 0, unknown: 0, overall: decisions.length };
+  const recent: AdminRecommendationLogRow[] = decisions.map((decision: any) => {
+    const output = (decision.recommendationOutput || {}) as Record<string, unknown>;
+    const source = typeof output.source === "string" ? output.source : "unknown";
+    if (source === "deterministic") totals.deterministic++;
+    else if (source === "llm-dummy") totals.llmDummy++;
+    else if (source === "llm-openai") totals.llmOpenai++;
+    else totals.unknown++;
+
+    const shipment = decision.shipmentException?.shipment;
+    return {
+      id: decision.id,
+      decidedAt: decision.createdAt.toISOString(),
+      organizationName: decision.shipmentException?.organization?.name || "Unknown workspace",
+      organizationSlug: decision.shipmentException?.organization?.slug || "",
+      source,
+      primaryAction: typeof output.primaryAction === "string" ? output.primaryAction : "",
+      confidence: typeof output.confidence === "string" ? output.confidence : "",
+      summary: typeof output.summary === "string" ? output.summary : "",
+      rationale: typeof output.rationale === "string" ? output.rationale : "",
+      exceptionLane: shipment ? `${shipment.origin} -> ${shipment.destination}` : "",
+      exceptionRiskLevel: decision.shipmentException?.riskLevel || "",
+      decisionStatus: decision.status,
+      latencyMs: typeof output.latencyMs === "number" ? output.latencyMs : null,
+    };
+  });
+
+  return { totals, recent, windowSize };
 };
 
 export const getRMRoadsPendingInvitations: GetRMRoadsPendingInvitations<
