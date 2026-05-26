@@ -28,6 +28,13 @@ import {
   buildDecisionLogEntry,
   calculateDecisionMetrics,
 } from "./domain/metrics";
+import {
+  emailInfoList,
+  emailParagraph,
+  emailRiskBadge,
+  escapeHtml as escapeEmailHtml,
+  wrapBrandedEmail,
+} from "./domain/emailLayout";
 import { generateRecommendation } from "./domain/recommendations";
 import { generateLlmRecommendation, resolveLlmMode } from "./llmRecommendationProvider";
 import { createDefaultEvents, isEventActiveForScoring, scoreShipments } from "./domain/risk";
@@ -1486,12 +1493,19 @@ async function sendWorkspaceInvitationEmail(
         `Accept invitation: ${invitationUrl}`,
         "Sign in with this email address to accept the invitation.",
       ].join("\n"),
-      html: `
-        <p>${escapeHtml(invitation.sentBy)} invited you to join <strong>${escapeHtml(invitation.organizationName)}</strong> in RMRoads AI.</p>
-        <p><strong>Role:</strong> ${escapeHtml(invitation.role)}</p>
-        <p><a href="${escapeHtml(invitationUrl)}">Accept invitation</a></p>
-        <p>Sign in with this email address to accept the invitation.</p>
-      `,
+      html: wrapBrandedEmail({
+        preheader: `${invitation.sentBy} invited you to ${invitation.organizationName}`,
+        title: `You're invited to ${invitation.organizationName}`,
+        intro: `${invitation.sentBy} added you to their RMRoads AI workspace. Accept to start reviewing exception queues and approving recovery actions.`,
+        bodyHtml: emailInfoList([
+          { label: "Workspace", value: escapeEmailHtml(invitation.organizationName) },
+          { label: "Role", value: escapeEmailHtml(invitation.role) },
+          { label: "Sign in with", value: escapeEmailHtml(invitation.email) },
+        ]) + emailParagraph(
+          `The button below opens the workspace invitation page. Sign in with <strong>${escapeEmailHtml(invitation.email)}</strong> to accept — the invite is bound to that address.`,
+        ),
+        primaryAction: { label: "Accept invitation", url: invitationUrl },
+      }),
     });
 
     await context.entities.WorkspaceInvitation.update({
@@ -1524,6 +1538,7 @@ async function sendCriticalAlertEmail(
   exception: ExceptionItem,
   message: string,
 ) {
+  const workspaceUrl = buildWorkspaceUrl();
   await Promise.all(
     recipients.map((recipient) =>
       emailSender.send({
@@ -1534,20 +1549,35 @@ async function sendCriticalAlertEmail(
           `Customer: ${exception.customer}`,
           `Lane: ${exception.lane}`,
           `Risk: ${exception.riskLevel} ${exception.riskScore}/100`,
-          `Open workspace: /rmroads`,
+          `Open workspace: ${workspaceUrl}`,
         ].join("\n"),
-        html: `
-          <p>${escapeHtml(message)}</p>
-          <ul>
-            <li><strong>Customer:</strong> ${escapeHtml(exception.customer)}</li>
-            <li><strong>Lane:</strong> ${escapeHtml(exception.lane)}</li>
-            <li><strong>Risk:</strong> ${escapeHtml(exception.riskLevel)} ${exception.riskScore}/100</li>
-          </ul>
-          <p>Open the RMRoads AI workspace and review the exception queue.</p>
-        `,
+        html: wrapBrandedEmail({
+          preheader: `${exception.shipmentId} requires planner review`,
+          title: `Critical exception · ${exception.shipmentId}`,
+          intro: escapeEmailHtml(message),
+          bodyHtml:
+            emailInfoList([
+              { label: "Customer", value: escapeEmailHtml(exception.customer) },
+              { label: "Lane", value: escapeEmailHtml(exception.lane) },
+              {
+                label: "Risk",
+                value: emailRiskBadge(exception.riskLevel, `${exception.riskLevel.toUpperCase()} · ${exception.riskScore}/100`),
+              },
+              { label: "Reason", value: escapeEmailHtml(exception.reason) },
+            ]) +
+            emailParagraph(
+              "Open the workspace exception queue to compare recovery scenarios and approve the response.",
+            ),
+          primaryAction: { label: "Open workspace", url: workspaceUrl },
+        }),
       }),
     ),
   );
+}
+
+function buildWorkspaceUrl() {
+  const appUrl = process.env.RMROADS_APP_URL || process.env.WASP_WEB_CLIENT_URL || "http://localhost:3000";
+  return `${appUrl.replace(/\/$/, "")}/rmroads`;
 }
 
 function escapeHtml(value: string) {

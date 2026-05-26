@@ -1,3 +1,11 @@
+import {
+  emailInfoList,
+  emailParagraph,
+  emailSectionTitle,
+  escapeHtml,
+  wrapBrandedEmail,
+} from "./emailLayout";
+
 export type PilotLeadEmailInput = {
   name: string;
   workEmail: string;
@@ -43,27 +51,27 @@ export function buildPilotLeadEmail(lead: PilotLeadEmailInput) {
     "",
     `Review lead: ${lead.adminUrl}`,
   ].join("\n");
-  const html = `
-    <p>New RMRoads AI pilot request from <strong>${escapeHtml(lead.name)}</strong> at <strong>${escapeHtml(lead.company)}</strong>.</p>
-    <ul>
-      <li><strong>Email:</strong> ${escapeHtml(lead.workEmail)}</li>
-      <li><strong>Role:</strong> ${escapeHtml(lead.role)}</li>
-      <li><strong>Shipment volume:</strong> ${escapeHtml(lead.shipmentVolume)}</li>
-      <li><strong>Current tools:</strong> ${escapeHtml(lead.currentTools)}</li>
-    </ul>
-    <p><strong>Disruption pain:</strong><br>${escapeHtml(lead.disruptionPain)}</p>
-    <p><strong>Pilot goal:</strong><br>${escapeHtml(lead.pilotGoal)}</p>
-    <p><a href="${escapeHtml(lead.adminUrl)}">Review lead in admin</a></p>
-  `;
+
+  const body =
+    emailInfoList([
+      { label: "Contact", value: `${escapeHtml(lead.name)} · ${escapeHtml(lead.workEmail)}` },
+      { label: "Company", value: escapeHtml(lead.company) },
+      { label: "Role", value: escapeHtml(lead.role) },
+      { label: "Shipment volume", value: escapeHtml(lead.shipmentVolume) },
+      { label: "Current tools", value: escapeHtml(lead.currentTools) },
+    ]) +
+    emailSectionTitle("Disruption pain") +
+    emailParagraph(escapeHtml(lead.disruptionPain)) +
+    emailSectionTitle("Pilot goal") +
+    emailParagraph(escapeHtml(lead.pilotGoal));
+
+  const html = wrapBrandedEmail({
+    preheader: `New pilot request from ${lead.name} at ${lead.company}`,
+    title: `Pilot request from ${lead.company}`,
+    intro: `${lead.name} just submitted a disruption audit request. Qualify and route from the admin pilot leads view.`,
+    bodyHtml: body,
+    primaryAction: { label: "Review lead in admin", url: lead.adminUrl },
+  });
 
   return { subject, text, html };
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
 }

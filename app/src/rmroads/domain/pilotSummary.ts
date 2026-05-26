@@ -1,3 +1,10 @@
+import {
+  emailRiskList,
+  emailSectionTitle,
+  emailStatGrid,
+  escapeHtml,
+  wrapBrandedEmail,
+} from "./emailLayout";
 import type {
   CriticalAlertEntry,
   DecisionLogEntry,
@@ -98,29 +105,35 @@ export function buildPilotSummaryEmail(summary: PilotSummaryInput, generatedAt =
     "Top risks:",
     topRiskText,
   ].join("\n");
-  const topRiskHtml = topRisks.length
-    ? topRisks.map((exception) => `<li><strong>${escapeHtml(exception.shipmentId)}</strong>: ${escapeHtml(exception.customer)}, ${exception.riskScore}/100, ${escapeHtml(exception.reason)}</li>`).join("")
-    : "<li>No open exceptions</li>";
-  const html = `
-    <p>Weekly RMRoads AI pilot summary for <strong>${escapeHtml(summary.organizationName || "Workspace")}</strong></p>
-    <p><strong>Generated:</strong> ${generatedAt.toISOString()}</p>
-    <ul>
-      <li><strong>Shipments monitored:</strong> ${summary.shipmentCount}</li>
-      <li><strong>Active disruption signals:</strong> ${summary.eventCount}</li>
-      <li><strong>Open exceptions:</strong> ${activeExceptions}</li>
-      <li><strong>Critical exceptions:</strong> ${summary.criticalExceptionCount}</li>
-      <li><strong>Reviewed decisions:</strong> ${summary.reviewedCount}</li>
-      <li><strong>Average response hours:</strong> ${summary.averageResponseHours || 0}</li>
-      <li><strong>Approved / deferred / rejected:</strong> ${summary.approvedCount} / ${summary.deferredCount} / ${summary.rejectedCount}</li>
-      <li><strong>Average reviewed risk score:</strong> ${summary.averageRiskScore}</li>
-      <li><strong>Estimated protected value:</strong> ${summary.estimatedProtectedValue}</li>
-      <li><strong>Successful outcomes:</strong> ${successfulOutcomes}</li>
-      <li><strong>Failed outcomes:</strong> ${failedOutcomes}</li>
-      <li><strong>Critical alert failures:</strong> ${criticalAlertFailures}</li>
-    </ul>
-    <p><strong>Top risks:</strong></p>
-    <ul>${topRiskHtml}</ul>
-  `;
+  const stats = [
+    { label: "Shipments monitored", value: summary.shipmentCount },
+    { label: "Active signals", value: summary.eventCount },
+    { label: "Open exceptions", value: activeExceptions },
+    { label: "Critical exceptions", value: summary.criticalExceptionCount },
+    { label: "Reviewed decisions", value: summary.reviewedCount },
+    { label: "Avg response hours", value: summary.averageResponseHours || 0 },
+    { label: "Approved / deferred / rejected", value: `${summary.approvedCount} / ${summary.deferredCount} / ${summary.rejectedCount}` },
+    { label: "Avg risk score", value: summary.averageRiskScore },
+    { label: "Protected value (est.)", value: `$${summary.estimatedProtectedValue.toLocaleString("en-US")}` },
+    { label: "Successful outcomes", value: successfulOutcomes },
+    { label: "Failed outcomes", value: failedOutcomes },
+    { label: "Alert delivery failures", value: criticalAlertFailures },
+  ];
+  const orgName = summary.organizationName || "Workspace";
+
+  const html = wrapBrandedEmail({
+    preheader: `Weekly pilot summary for ${orgName}`,
+    title: `Weekly pilot summary · ${orgName}`,
+    intro: `Generated ${generatedAt.toISOString()}. Review this week's activity, decision velocity, and top open risks before the operating cadence.`,
+    bodyHtml:
+      emailSectionTitle("Activity & decisions") +
+      emailStatGrid(stats) +
+      emailSectionTitle("Top open risks") +
+      emailRiskList(topRisks),
+    footerNote: criticalAlertFailures > 0
+      ? `<strong style="color:#ffb4ab;">${criticalAlertFailures} critical alert${criticalAlertFailures === 1 ? "" : "s"} failed to deliver this week.</strong> Check the Critical Alert Log before the next pilot review.`
+      : undefined,
+  });
 
   return { subject, text, html };
 }
@@ -144,11 +157,3 @@ function getUtcWeekKey(date: Date) {
   return `${normalized.getUTCFullYear()}-${week}`;
 }
 
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
