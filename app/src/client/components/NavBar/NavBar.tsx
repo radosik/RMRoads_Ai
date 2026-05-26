@@ -244,7 +244,7 @@ function BrandMark({ isScrolled }: { isScrolled: boolean }) {
       </span>
       <span
         className={cn(
-          "rmr-glow ml-1.5 bg-gradient-to-br from-secondary to-secondary/60 bg-clip-text font-extrabold uppercase tracking-[0.14em] text-transparent",
+          "rmr-text-glow ml-1.5 font-extrabold uppercase tracking-[0.14em] text-secondary",
           {
             "text-[0.95rem]": !isScrolled,
             "text-xs": isScrolled,

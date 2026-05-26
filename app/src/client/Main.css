@@ -356,6 +356,10 @@
     box-shadow: 0 0 18px -4px rgba(76, 215, 246, 0.48);
   }
 
+  .rmr-text-glow {
+    text-shadow: 0 0 18px rgba(76, 215, 246, 0.55);
+  }
+
   .rmr-stream {
     position: relative;
     overflow: hidden;

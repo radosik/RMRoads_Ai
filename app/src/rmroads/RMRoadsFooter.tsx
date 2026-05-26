@@ -96,7 +96,7 @@ export function RMRoadsFooter() {
             <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
               RMRoads
             </span>
-            <span className="rmr-glow ml-1.5 bg-gradient-to-br from-secondary to-secondary/60 bg-clip-text font-extrabold uppercase tracking-[0.14em] text-transparent">
+            <span className="rmr-text-glow ml-1.5 font-extrabold uppercase tracking-[0.14em] text-secondary">
               AI
             </span>
           </WaspRouterLink>
