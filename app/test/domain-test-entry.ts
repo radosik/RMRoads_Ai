@@ -37,3 +37,4 @@ export {
   isLlmRecommendationOutput,
   tokenize,
 } from "../src/rmroads/domain/llmRecommendations";
+export { withRetryAndTimeout } from "../src/rmroads/llmRecommendationProvider";

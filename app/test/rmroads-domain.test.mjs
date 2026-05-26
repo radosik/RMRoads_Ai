@@ -465,6 +465,50 @@ test("tokenize produces stable, label-prefixed tokens", () => {
   assert.equal(domain.tokenize("Lane", ""), "Lane-empty");
 });
 
+test("withRetryAndTimeout returns the first successful attempt without retrying", async () => {
+  let calls = 0;
+  const result = await domain.withRetryAndTimeout(
+    async () => {
+      calls += 1;
+      return "ok";
+    },
+    { timeoutMs: 200, maxAttempts: 3, backoffMs: 0 },
+  );
+  assert.equal(result, "ok");
+  assert.equal(calls, 1);
+});
+
+test("withRetryAndTimeout retries transient failures and surfaces last error after the budget", async () => {
+  let calls = 0;
+  await assert.rejects(
+    domain.withRetryAndTimeout(
+      async () => {
+        calls += 1;
+        throw new Error(`attempt ${calls} failed`);
+      },
+      { timeoutMs: 200, maxAttempts: 3, backoffMs: 0 },
+    ),
+    /attempt 3 failed/,
+  );
+  assert.equal(calls, 3);
+});
+
+test("withRetryAndTimeout enforces a per-attempt timeout", async () => {
+  let calls = 0;
+  await assert.rejects(
+    domain.withRetryAndTimeout(
+      async () => {
+        calls += 1;
+        await new Promise((resolve) => setTimeout(resolve, 80));
+        return "late";
+      },
+      { timeoutMs: 20, maxAttempts: 2, backoffMs: 0 },
+    ),
+    /exceeded 20ms/,
+  );
+  assert.equal(calls, 2);
+});
+
 test("anonymizeLlmInput strips customer name and lane endpoints, preserves operational fields", () => {
   const raw = {
     shipmentExternalId: "S-1",

@@ -9,6 +9,50 @@ import {
 
 export type LlmProviderMode = "off" | "dummy" | "openai";
 
+export type RetryAndTimeoutOptions = {
+  timeoutMs?: number;
+  maxAttempts?: number;
+  backoffMs?: number;
+};
+
+// Wraps an async function with a per-attempt timeout and bounded retries.
+// Used by the openai branch so transient failures (network blips, slow
+// responses) do not silently drop a recommendation. Defaults are tuned for
+// an interactive planner flow: 8s total per call, one retry, half-second
+// backoff. Adjust at the call site as we learn more in production.
+export async function withRetryAndTimeout<T>(
+  fn: () => Promise<T>,
+  options: RetryAndTimeoutOptions = {},
+): Promise<T> {
+  const timeoutMs = options.timeoutMs ?? 8000;
+  const maxAttempts = Math.max(1, options.maxAttempts ?? 2);
+  const backoffMs = options.backoffMs ?? 500;
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        fn(),
+        new Promise<never>((_resolve, reject) => {
+          timeoutHandle = setTimeout(
+            () => reject(new Error(`LLM call exceeded ${timeoutMs}ms`)),
+            timeoutMs,
+          );
+        }),
+      ]);
+    } catch (err) {
+      lastError = err;
+    } finally {
+      if (timeoutHandle) clearTimeout(timeoutHandle);
+    }
+    if (attempt < maxAttempts && backoffMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, backoffMs));
+    }
+  }
+  throw lastError;
+}
+
 export type LlmProviderSuccess = {
   output: LlmRecommendationOutput;
   source: "llm-dummy" | "llm-openai";
@@ -52,15 +96,33 @@ export async function generateLlmRecommendation(
     // names and lane endpoints become stable hash tokens; operational fields
     // (value, priority, risk reason) pass through.
     const sanitized = anonymizeLlmInput(input);
-    const _prompt = buildLlmRecommendationPrompt(sanitized);
-    void _prompt;
-    // Real OpenAI SDK call is deliberately not wired yet. Keeping the call
-    // out until retry + timeout behaviour and a workspace opt-in for sending
-    // anonymized vs raw input land per doc 14.
-    console.warn(
-      "[llmRecommendations] mode=openai is scaffolded (with anonymization) but not yet wired; falling back to deterministic.",
-    );
-    return null;
+    const prompt = buildLlmRecommendationPrompt(sanitized);
+    try {
+      const output = await withRetryAndTimeout(
+        async () => {
+          // TODO: real OpenAI SDK call goes here. Use `prompt.system` and
+          // `prompt.user`, expect a JSON response, validate with
+          // isLlmRecommendationOutput before returning. Until that lands we
+          // throw so the retry/timeout path is exercised end-to-end and the
+          // caller falls back to deterministic instead of producing fake
+          // openai-tagged output.
+          void prompt;
+          throw new Error("mode=openai is scaffolded but the OpenAI call is not yet wired");
+        },
+        { timeoutMs: 8000, maxAttempts: 1 },
+      );
+      if (!isLlmRecommendationOutput(output)) {
+        console.warn("[llmRecommendations] openai output failed self-validation");
+        return null;
+      }
+      return { output, source: "llm-openai", latencyMs: Date.now() - start };
+    } catch (err) {
+      console.warn(
+        "[llmRecommendations] mode=openai call failed; falling back to deterministic:",
+        (err as Error).message,
+      );
+      return null;
+    }
   }
 
   return null;
