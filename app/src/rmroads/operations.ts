@@ -313,6 +313,8 @@ export const getRMRoadsDashboard: GetRMRoadsDashboard<
         status: decision.status,
         owner: exception.ownerName || "",
       };
+      const storedOutput = decision.recommendationOutput as { source?: string } | null;
+      const storedSource = storedOutput?.source;
       return buildDecisionLogEntry({
         id: decision.id,
         exception: exceptionItem,
@@ -325,6 +327,10 @@ export const getRMRoadsDashboard: GetRMRoadsDashboard<
         decidedBy: decision.decidedBy.email || decision.decidedBy.username || "Planner",
         decidedAt: decision.createdAt.toISOString(),
         exceptionCreatedAt: exception.createdAt.toISOString(),
+        recommendationSource:
+          storedSource === "llm-dummy" || storedSource === "llm-openai" || storedSource === "deterministic"
+            ? storedSource
+            : undefined,
       });
     }),
   ).sort((a, b) => b.decidedAt.localeCompare(a.decidedAt));

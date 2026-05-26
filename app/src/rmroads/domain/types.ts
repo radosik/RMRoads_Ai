@@ -119,6 +119,7 @@ export type DecisionLogEntry = {
   note: string;
   outcomeStatus: DecisionOutcomeStatus;
   outcomeNote: string;
+  recommendationSource?: RecommendationSource;
 };
 
 export type CriticalAlertEntry = {

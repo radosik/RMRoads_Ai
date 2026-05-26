@@ -873,7 +873,14 @@ function WorkbenchDetailPanel({
             <div className="grid gap-2 rounded border border-border/40 bg-background/60 p-[var(--rmr-panel-pad)]" data-rmr-detail-animate>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <div className="rmr-label text-muted-foreground">Decision outcome</div>
+                  <div className="rmr-label flex items-center gap-2 text-muted-foreground">
+                    Decision outcome
+                    {latestDecision.recommendationSource === "llm-dummy" || latestDecision.recommendationSource === "llm-openai" ? (
+                      <span className="rmr-label rounded bg-secondary/15 px-2 py-0.5 text-secondary">
+                        AI · {latestDecision.recommendationSource === "llm-dummy" ? "Dummy" : "OpenAI"}
+                      </span>
+                    ) : null}
+                  </div>
                   <p className="mt-1 text-xs text-muted-foreground">
                     Track whether the approved response worked during pilot review.
                   </p>

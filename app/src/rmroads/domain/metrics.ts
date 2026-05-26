@@ -1,4 +1,11 @@
-import type { DecisionLogEntry, DecisionOutcomeStatus, ExceptionItem, ScenarioAction, Shipment } from "./types";
+import type {
+  DecisionLogEntry,
+  DecisionOutcomeStatus,
+  ExceptionItem,
+  RecommendationSource,
+  ScenarioAction,
+  Shipment,
+} from "./types";
 
 const actionValueRatios: Record<ScenarioAction, number> = {
   expedite: 0.08,
@@ -59,6 +66,7 @@ export function buildDecisionLogEntry({
   decidedBy,
   decidedAt,
   exceptionCreatedAt,
+  recommendationSource,
 }: {
   id: string;
   exception: ExceptionItem;
@@ -71,6 +79,7 @@ export function buildDecisionLogEntry({
   decidedBy: string;
   decidedAt: string;
   exceptionCreatedAt?: string;
+  recommendationSource?: RecommendationSource;
 }): DecisionLogEntry {
   const shipmentValue = shipment?.value || exception.value || 0;
   const responseHours = calculateResponseHours(exceptionCreatedAt, decidedAt);
@@ -93,6 +102,7 @@ export function buildDecisionLogEntry({
     note,
     outcomeStatus,
     outcomeNote,
+    recommendationSource,
   };
 }
 
