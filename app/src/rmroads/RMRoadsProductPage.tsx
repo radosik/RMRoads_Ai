@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { animate, stagger } from "animejs";
+import { useTranslation } from "react-i18next";
 import {
   AlertTriangle,
   ClipboardCheck,
@@ -146,29 +147,30 @@ export default function RMRoadsProductPage() {
 }
 
 function Hero() {
+  const { t } = useTranslation();
   return (
     <section className="rmr-reveal-section relative border-b border-border/30 px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
       <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)] lg:items-center">
         <div className="min-w-0">
           <div className="rmr-reveal rmr-label mb-6 inline-flex items-center gap-2 rounded-full border border-secondary/30 bg-secondary/10 px-3 py-1 text-secondary">
             <span className="rmr-glow size-2 rounded-full bg-secondary" />
-            SYSTEM ACTIVE
+            {t("landing.hero.systemActive")}
           </div>
           <h1 className="rmr-reveal max-w-3xl text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-[4rem] lg:leading-[1.02]">
-            Rank shipment risk, compare recovery options.
+            {t("landing.hero.headline")}
           </h1>
           <p className="rmr-reveal mt-6 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
-            Approve response actions before delays hit customers. High-stakes logistics operations demand precision, not fragmented alerts.
+            {t("landing.hero.subtitle")}
           </p>
           <div className="rmr-reveal mt-8 flex flex-col gap-3 sm:flex-row">
             <Button className="rmr-label h-12 rounded bg-secondary px-6 text-secondary-foreground hover:bg-secondary-muted" asChild>
               <WaspRouterLink to={routes.RMRoadsPilotRoute.to}>
-                Book a disruption audit
+                {t("landing.hero.ctaPrimary")}
               </WaspRouterLink>
             </Button>
             <Button className="rmr-label h-12 rounded border-border/70 px-6" variant="outline" asChild>
               <WaspRouterLink to={routes.RMRoadsDashboardRoute.to}>
-                <PlayCircle className="mr-2 size-4" /> See the workflow
+                <PlayCircle className="mr-2 size-4" /> {t("landing.hero.ctaSecondary")}
               </WaspRouterLink>
             </Button>
           </div>
@@ -184,6 +186,7 @@ function Hero() {
 }
 
 function ProblemSection() {
+  const { t } = useTranslation();
   const problems: Array<{
     value: number;
     suffix?: string;
@@ -193,22 +196,22 @@ function ProblemSection() {
   }> = [
     {
       value: 37,
-      unit: "min",
-      label: "Avg. time to detect a shipment exception today",
-      detail: "Planners scan carrier portals, spreadsheets, and email threads to spot risk.",
+      unit: t("landing.problem.stats.detect.unit"),
+      label: t("landing.problem.stats.detect.label"),
+      detail: t("landing.problem.stats.detect.detail"),
     },
     {
       value: 5,
       suffix: "+",
-      unit: "tools",
-      label: "Systems touched before a recovery decision",
-      detail: "TMS, ERP, customer CRM, supplier emails, and offline notes all weigh in.",
+      unit: t("landing.problem.stats.tools.unit"),
+      label: t("landing.problem.stats.tools.label"),
+      detail: t("landing.problem.stats.tools.detail"),
     },
     {
       value: 0,
-      unit: "audit",
-      label: "Decisions captured with reasoning for the next review",
-      detail: "Outcomes vanish in chat threads — there is no system of record for response.",
+      unit: t("landing.problem.stats.audit.unit"),
+      label: t("landing.problem.stats.audit.label"),
+      detail: t("landing.problem.stats.audit.detail"),
     },
   ];
   return (
@@ -216,13 +219,13 @@ function ProblemSection() {
       <div className="mx-auto max-w-7xl">
         <div className="max-w-3xl">
           <span className="rmr-reveal rmr-label inline-flex items-center gap-2 rounded-full border border-border/40 bg-card-subtle/60 px-3 py-1 text-muted-foreground">
-            The pain point
+            {t("landing.problem.tag")}
           </span>
           <h2 className="rmr-reveal mt-5 text-3xl font-semibold tracking-tight sm:text-4xl lg:text-[2.75rem] lg:leading-[1.1]">
-            Disruptions are not the hard part. Deciding what to do next is.
+            {t("landing.problem.headline")}
           </h2>
           <p className="rmr-reveal mt-5 text-base leading-7 text-muted-foreground sm:text-lg">
-            Port congestion, carrier delays, weather, and customs issues surface in too many places and too late. By the time the team agrees on a response, the customer is already feeling the delay.
+            {t("landing.problem.subtitle")}
           </p>
         </div>
         <div className="mt-12 grid gap-4 md:grid-cols-3">
@@ -371,16 +374,17 @@ function ControlLayer() {
 }
 
 function FinalCta() {
+  const { t } = useTranslation();
   return (
     <section className="rmr-reveal-section px-4 py-16 sm:px-6 lg:px-8">
       <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
-        <h2 className="rmr-reveal text-3xl font-semibold tracking-tight sm:text-4xl">Use the pilot to prove decision speed.</h2>
+        <h2 className="rmr-reveal text-3xl font-semibold tracking-tight sm:text-4xl">{t("landing.finalCta.title")}</h2>
         <p className="rmr-reveal mt-4 max-w-xl text-sm leading-6 text-muted-foreground">
-          Start with a 30-45 day disruption audit on active shipments, then review decisions and protected value weekly.
+          {t("landing.finalCta.body")}
         </p>
         <Button className="rmr-reveal rmr-label mt-8 h-12 rounded bg-secondary px-6 text-secondary-foreground hover:bg-secondary-muted" asChild>
           <WaspRouterLink to={routes.RMRoadsPilotRoute.to}>
-            Book a disruption audit
+            {t("landing.finalCta.cta")}
           </WaspRouterLink>
         </Button>
       </div>

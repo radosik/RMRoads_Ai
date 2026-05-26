@@ -1,39 +1,9 @@
+import { useTranslation } from "react-i18next";
 import { useAuth } from "wasp/client/auth";
 import { Link as WaspRouterLink, routes } from "wasp/client/router";
 
 type FooterLink = { name: string; href: string; external?: boolean };
 type FooterColumn = { title: string; links: FooterLink[] };
-
-const productLinks: FooterLink[] = [
-  { name: "How it works", href: "/#workflow" },
-  { name: "Workbench preview", href: "/#workbench" },
-  { name: "Trust & control", href: "/#trust" },
-  { name: "Pilot audit", href: "/pilot" },
-];
-
-const resourcesLinks: FooterLink[] = [
-  { name: "Blog", href: "/blog", external: true },
-  { name: "Docs", href: "https://docs.opensaas.sh", external: true },
-  { name: "Pilot brief", href: "/pilot" },
-];
-
-const legalLinks: FooterLink[] = [
-  { name: "Privacy", href: "#" },
-  { name: "Terms of Service", href: "#" },
-  { name: "Cookie settings", href: "#" },
-];
-
-const plannerLinks: FooterLink[] = [
-  { name: "Workspace", href: "/rmroads" },
-  { name: "Settings", href: "/rmroads/settings" },
-  { name: "Pending invitations", href: "/rmroads/invitations" },
-];
-
-const adminLinks: FooterLink[] = [
-  { name: "Tenant health", href: "/admin/tenant-health" },
-  { name: "Recommendations log", href: "/admin/recommendations" },
-  { name: "Pilot leads", href: "/admin/pilot-leads" },
-];
 
 function FooterColumnBlock({ column }: { column: FooterColumn }) {
   return (
@@ -59,24 +29,52 @@ function FooterColumnBlock({ column }: { column: FooterColumn }) {
 
 export function RMRoadsFooter() {
   const { data: user } = useAuth();
+  const { t } = useTranslation();
   const year = new Date().getFullYear();
+
+  const productLinks: FooterLink[] = [
+    { name: t("footer.links.howItWorks"), href: "/#workflow" },
+    { name: t("footer.links.workbenchPreview"), href: "/#workbench" },
+    { name: t("footer.links.trustControl"), href: "/#trust" },
+    { name: t("footer.links.pilotAudit"), href: "/pilot" },
+  ];
+  const resourcesLinks: FooterLink[] = [
+    { name: t("footer.links.blog"), href: "/blog", external: true },
+    { name: t("footer.links.docs"), href: "https://docs.opensaas.sh", external: true },
+    { name: t("footer.links.pilotBrief"), href: "/pilot" },
+  ];
+  const legalLinks: FooterLink[] = [
+    { name: t("footer.links.privacy"), href: "#" },
+    { name: t("footer.links.terms"), href: "#" },
+    { name: t("footer.links.cookies"), href: "#" },
+  ];
+  const plannerLinks: FooterLink[] = [
+    { name: t("footer.links.workspaceLink"), href: "/rmroads" },
+    { name: t("footer.links.settingsLink"), href: "/rmroads/settings" },
+    { name: t("footer.links.pendingInvitations"), href: "/rmroads/invitations" },
+  ];
+  const adminLinks: FooterLink[] = [
+    { name: t("footer.links.tenantHealth"), href: "/admin/tenant-health" },
+    { name: t("footer.links.recommendationsLog"), href: "/admin/recommendations" },
+    { name: t("footer.links.pilotLeads"), href: "/admin/pilot-leads" },
+  ];
 
   const columns: FooterColumn[] = user
     ? user.isAdmin
       ? [
-          { title: "Admin", links: adminLinks },
-          { title: "Workspace", links: plannerLinks },
-          { title: "Legal", links: legalLinks },
+          { title: t("footer.columns.admin"), links: adminLinks },
+          { title: t("footer.columns.workspace"), links: plannerLinks },
+          { title: t("footer.columns.legal"), links: legalLinks },
         ]
       : [
-          { title: "Workspace", links: plannerLinks },
-          { title: "Product", links: productLinks },
-          { title: "Legal", links: legalLinks },
+          { title: t("footer.columns.workspace"), links: plannerLinks },
+          { title: t("footer.columns.product"), links: productLinks },
+          { title: t("footer.columns.legal"), links: legalLinks },
         ]
     : [
-        { title: "Product", links: productLinks },
-        { title: "Resources", links: resourcesLinks },
-        { title: "Legal", links: legalLinks },
+        { title: t("footer.columns.product"), links: productLinks },
+        { title: t("footer.columns.resources"), links: resourcesLinks },
+        { title: t("footer.columns.legal"), links: legalLinks },
       ];
 
   return (
@@ -101,11 +99,11 @@ export function RMRoadsFooter() {
             </span>
           </WaspRouterLink>
           <p className="mt-4 text-sm leading-6 text-muted-foreground">
-            Disruption response workbench for shipment planners. Rank exception risk, compare recovery options, and approve the response before delays hit customers.
+            {t("footer.tagline")}
           </p>
           <div className="mt-6 flex items-center gap-2">
             <span className="rmr-glow size-2 rounded-full bg-secondary" />
-            <span className="rmr-label text-muted-foreground">All systems active</span>
+            <span className="rmr-label text-muted-foreground">{t("footer.systemsActive")}</span>
           </div>
         </div>
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
@@ -116,8 +114,8 @@ export function RMRoadsFooter() {
       </div>
       <div className="border-t border-border/30">
         <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-3 px-4 py-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:px-6 lg:px-8">
-          <span>© {year} RMRoads AI · Disruption response workbench</span>
-          <span className="rmr-data">Recommendations are decision support. Planner approval is required.</span>
+          <span>{t("footer.copyright", { year })}</span>
+          <span className="rmr-data">{t("footer.disclaimer")}</span>
         </div>
       </div>
     </footer>

@@ -1,16 +1,14 @@
 import { animate } from "animejs/animation";
 import { useEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Outlet, useLocation } from "react-router";
+import { useAuth } from "wasp/client/auth";
 import { routes } from "wasp/client/router";
+import "../i18n";
 import { Toaster } from "../client/components/ui/toaster";
 import "./Main.css";
-import { useAuth } from "wasp/client/auth";
 import NavBar from "./components/NavBar/NavBar";
-import {
-  rmroadsAdminNav,
-  rmroadsPlannerNav,
-  rmroadsPublicNav,
-} from "./components/NavBar/constants";
+import { buildAdminNav, buildPlannerNav, buildPublicNav } from "./components/NavBar/constants";
 import CookieConsentBanner from "./components/cookie-consent/Banner";
 
 /**
@@ -22,6 +20,7 @@ export default function App() {
   const pageTransitionRef = useRef<HTMLDivElement | null>(null);
 
   const { data: user } = useAuth();
+  const { t } = useTranslation();
 
   const shouldDisplayAppNavBar = useMemo(() => {
     return (
@@ -31,10 +30,10 @@ export default function App() {
   }, [location]);
 
   const navigationItems = useMemo(() => {
-    if (!user) return rmroadsPublicNav;
-    if (user.isAdmin) return rmroadsAdminNav;
-    return rmroadsPlannerNav;
-  }, [user]);
+    if (!user) return buildPublicNav(t);
+    if (user.isAdmin) return buildAdminNav(t);
+    return buildPlannerNav(t);
+  }, [user, t]);
 
   const isAdminDashboard = useMemo(() => {
     return location.pathname.startsWith("/admin");

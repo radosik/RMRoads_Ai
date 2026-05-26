@@ -1,8 +1,10 @@
 import { LogIn, Menu } from "lucide-react";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link as ReactRouterLink } from "react-router";
 import { useAuth } from "wasp/client/auth";
 import { Link as WaspRouterLink, routes } from "wasp/client/router";
+import { LanguageSwitcher } from "../../../i18n/LanguageSwitcher";
 import {
   Sheet,
   SheetContent,
@@ -93,10 +95,12 @@ export default function NavBar({
 
 function NavBarDesktopUserDropdown({ isScrolled }: { isScrolled: boolean }) {
   const { data: user, isLoading: isUserLoading } = useAuth();
+  const { t } = useTranslation();
 
   return (
     <div className="hidden items-center justify-end gap-3 lg:flex lg:flex-1">
       <ul className="flex items-center justify-center gap-2 sm:gap-4">
+        <LanguageSwitcher />
         <DarkModeSwitcher />
       </ul>
       {isUserLoading ? null : !user ? (
@@ -111,7 +115,7 @@ function NavBarDesktopUserDropdown({ isScrolled }: { isScrolled: boolean }) {
           )}
         >
           <div className="text-foreground hover:text-secondary flex items-center transition-colors duration-300 ease-in-out">
-            Log in{" "}
+            {t("nav.login")}{" "}
             <LogIn
               size={isScrolled ? "1rem" : "1.1rem"}
               className={cn("transition-all duration-300", {
@@ -138,6 +142,7 @@ function NavBarMobileMenu({
   navigationItems: NavigationItem[];
 }) {
   const { data: user, isLoading: isUserLoading } = useAuth();
+  const { t } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -178,7 +183,7 @@ function NavBarMobileMenu({
                 {isUserLoading ? null : !user ? (
                   <WaspRouterLink to={routes.LoginRoute.to}>
                     <div className="text-foreground hover:text-secondary flex items-center justify-end transition-colors duration-300 ease-in-out">
-                      Log in <LogIn size="1.1rem" className="ml-1" />
+                      {t("nav.login")} <LogIn size="1.1rem" className="ml-1" />
                     </div>
                   </WaspRouterLink>
                 ) : (
@@ -190,7 +195,8 @@ function NavBarMobileMenu({
                   </ul>
                 )}
               </div>
-              <div className="py-6">
+              <div className="flex items-center justify-between gap-3 py-6">
+                <LanguageSwitcher compact />
                 <DarkModeSwitcher />
               </div>
             </div>

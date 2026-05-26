@@ -1,29 +1,30 @@
+import type { TFunction } from "i18next";
 import { routes } from "wasp/client/router";
 import type { NavigationItem } from "./NavBar";
 
-// Marketing nav for visitors who are not signed in. Keep it short and
-// pointed at the conversion path (pilot audit request).
-export const rmroadsPublicNav: NavigationItem[] = [
-  { name: "Product", to: routes.LandingPageRoute.to },
-  { name: "Pilot", to: routes.RMRoadsPilotRoute.to },
-] as const;
+// Nav builders take t so the labels live in the i18n catalog. Component
+// re-renders on language change picks up new labels automatically.
 
-// Planner nav for authenticated non-admin users — workspace surfaces only.
-export const rmroadsPlannerNav: NavigationItem[] = [
-  { name: "Workspace", to: routes.RMRoadsDashboardRoute.to },
-  { name: "Settings", to: routes.RMRoadsSettingsRoute.to },
-  { name: "Pilot", to: routes.RMRoadsPilotRoute.to },
-] as const;
+export function buildPublicNav(t: TFunction): NavigationItem[] {
+  return [
+    { name: t("nav.product"), to: routes.LandingPageRoute.to },
+    { name: t("nav.pilot"), to: routes.RMRoadsPilotRoute.to },
+  ];
+}
 
-// Admin nav adds operator-only routes. Tenant health is the natural
-// landing because it shows pilot readiness at a glance.
-export const rmroadsAdminNav: NavigationItem[] = [
-  { name: "Workspace", to: routes.RMRoadsDashboardRoute.to },
-  { name: "Tenant Health", to: routes.AdminTenantHealthRoute.to },
-  { name: "Recommendations", to: routes.AdminRecommendationsRoute.to },
-  { name: "Pilot Leads", to: routes.AdminPilotLeadsRoute.to },
-] as const;
+export function buildPlannerNav(t: TFunction): NavigationItem[] {
+  return [
+    { name: t("nav.workspace"), to: routes.RMRoadsDashboardRoute.to },
+    { name: t("nav.settings"), to: routes.RMRoadsSettingsRoute.to },
+    { name: t("nav.pilot"), to: routes.RMRoadsPilotRoute.to },
+  ];
+}
 
-// Legacy export retained for any imports that have not been migrated;
-// defaults to the planner set.
-export const rmroadsNavigationItems = rmroadsPlannerNav;
+export function buildAdminNav(t: TFunction): NavigationItem[] {
+  return [
+    { name: t("nav.workspace"), to: routes.RMRoadsDashboardRoute.to },
+    { name: t("nav.tenantHealth"), to: routes.AdminTenantHealthRoute.to },
+    { name: t("nav.recommendations"), to: routes.AdminRecommendationsRoute.to },
+    { name: t("nav.pilotLeads"), to: routes.AdminPilotLeadsRoute.to },
+  ];
+}
