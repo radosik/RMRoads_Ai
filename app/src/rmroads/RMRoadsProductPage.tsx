@@ -176,7 +176,7 @@ function Hero() {
           </div>
         </div>
 
-        <div className="rmr-reveal rmr-panel relative min-h-[34rem] overflow-hidden bg-[#03111f] text-slate-100">
+        <div className="dark rmr-reveal rmr-panel relative min-h-[34rem] overflow-hidden bg-[#03111f] text-slate-100">
           <div className="pointer-events-none absolute inset-0 rmr-grid-bg opacity-40" />
           <RMRoadsWorkbenchPreview />
         </div>
