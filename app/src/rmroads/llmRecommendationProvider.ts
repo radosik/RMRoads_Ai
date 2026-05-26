@@ -1,4 +1,5 @@
 import {
+  anonymizeLlmInput,
   buildLlmRecommendationPrompt,
   generateDummyLlmRecommendation,
   isLlmRecommendationOutput,
@@ -46,13 +47,18 @@ export async function generateLlmRecommendation(
   }
 
   if (mode === "openai") {
-    // Prompt is built but the API call is deliberately not wired yet. This
-    // keeps the contract honest: nothing accidentally hits OpenAI before
-    // prompt logging, retry, and sensitive-data review land per doc 14.
-    const _prompt = buildLlmRecommendationPrompt(input);
+    // Anonymize before the prompt is built so the call site has nothing
+    // sensitive in scope by the time data is about to leave the box. Customer
+    // names and lane endpoints become stable hash tokens; operational fields
+    // (value, priority, risk reason) pass through.
+    const sanitized = anonymizeLlmInput(input);
+    const _prompt = buildLlmRecommendationPrompt(sanitized);
     void _prompt;
+    // Real OpenAI SDK call is deliberately not wired yet. Keeping the call
+    // out until retry + timeout behaviour and a workspace opt-in for sending
+    // anonymized vs raw input land per doc 14.
     console.warn(
-      "[llmRecommendations] mode=openai is scaffolded but not yet wired; falling back to deterministic.",
+      "[llmRecommendations] mode=openai is scaffolded (with anonymization) but not yet wired; falling back to deterministic.",
     );
     return null;
   }

@@ -31,7 +31,9 @@ export {
   evaluateInvitationAcceptance,
 } from "../src/rmroads/domain/tenantSecurity";
 export {
+  anonymizeLlmInput,
   buildLlmRecommendationPrompt,
   generateDummyLlmRecommendation,
   isLlmRecommendationOutput,
+  tokenize,
 } from "../src/rmroads/domain/llmRecommendations";

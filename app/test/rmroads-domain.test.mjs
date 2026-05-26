@@ -452,3 +452,39 @@ test("LLM output validator rejects malformed shapes", () => {
     false,
   );
 });
+
+test("tokenize produces stable, label-prefixed tokens", () => {
+  const a = domain.tokenize("Customer", "Northstar Retail");
+  const b = domain.tokenize("Customer", "Northstar Retail");
+  const c = domain.tokenize("Customer", "northstar retail");
+  const d = domain.tokenize("Customer", "Atlas Medical");
+  assert.equal(a, b, "same label+value must produce same token");
+  assert.equal(a, c, "casing differences must not change the token");
+  assert.notEqual(a, d, "different values must produce different tokens");
+  assert.match(a, /^Customer-[0-9a-f]{6}$/);
+  assert.equal(domain.tokenize("Lane", ""), "Lane-empty");
+});
+
+test("anonymizeLlmInput strips customer name and lane endpoints, preserves operational fields", () => {
+  const raw = {
+    shipmentExternalId: "S-1",
+    customer: "Northstar Retail",
+    lane: "Veracruz MX -> Atlanta GA",
+    priority: "critical",
+    value: 185000,
+    riskLevel: "critical",
+    riskScore: 95,
+    riskReason: "Port congestion",
+  };
+  const anon = domain.anonymizeLlmInput(raw);
+  assert.match(anon.customer, /^Customer-[0-9a-f]{6}$/);
+  assert.doesNotMatch(anon.customer, /Northstar/i);
+  assert.match(anon.lane, /^Origin-[0-9a-f]{6} -> Destination-[0-9a-f]{6}$/);
+  assert.doesNotMatch(anon.lane, /Veracruz|Atlanta/i);
+  // operational signal must pass through untouched
+  assert.equal(anon.shipmentExternalId, "S-1");
+  assert.equal(anon.value, 185000);
+  assert.equal(anon.priority, "critical");
+  assert.equal(anon.riskLevel, "critical");
+  assert.equal(anon.riskReason, "Port congestion");
+});

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { ScenarioAction } from "./types";
 
 export type LlmRecommendationInput = {
@@ -119,6 +120,41 @@ export function generateDummyLlmRecommendation(input: LlmRecommendationInput): L
       rationale: `Consider ${action} if the assumptions above change.`,
     })),
   };
+}
+
+// Deterministic 6-char tag derived from a SHA-256 prefix. Stable per (label,
+// value) pair so the LLM can reason about repeated customers / lanes within a
+// single call without learning their identity. No salt by design: we want the
+// same input to produce the same token across requests so cross-decision
+// patterns survive anonymization.
+export function tokenize(label: string, value: string): string {
+  const trimmed = (value ?? "").trim();
+  if (!trimmed) return `${label}-empty`;
+  const hash = createHash("sha256").update(`${label}:${trimmed.toLowerCase()}`).digest("hex").slice(0, 6);
+  return `${label}-${hash}`;
+}
+
+// Replaces commercially sensitive fields (customer name, lane endpoints) with
+// stable tokens so the prompt body contains no PII or named accounts. Other
+// fields (value, priority, risk score, risk reason) carry only operational
+// signal and pass through unchanged.
+//
+// Apply this before any input leaves the server boundary. The dummy provider
+// runs locally and intentionally does NOT call this — so admin logs in dev
+// stay human-readable.
+export function anonymizeLlmInput(input: LlmRecommendationInput): LlmRecommendationInput {
+  return {
+    ...input,
+    customer: tokenize("Customer", input.customer),
+    lane: anonymizeLane(input.lane),
+  };
+}
+
+function anonymizeLane(lane: string): string {
+  if (!lane) return lane;
+  if (!lane.includes(" -> ")) return tokenize("Lane", lane);
+  const [origin = "", destination = ""] = lane.split(" -> ");
+  return `${tokenize("Origin", origin)} -> ${tokenize("Destination", destination)}`;
 }
 
 function pickActionForInput(input: LlmRecommendationInput): ScenarioAction {
