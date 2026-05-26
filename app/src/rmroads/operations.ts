@@ -1401,54 +1401,65 @@ async function syncCriticalAlerts(
       if (!persisted) return;
 
       const signature = `${exception.id}:${exception.riskScore}:${exception.status}`;
-      const existingAlert = await context.entities.CriticalAlert.findUnique({
+      const message = `${exception.id} requires planner review: ${exception.reason}`;
+
+      // Ensure the alert row exists. Upsert is idempotent against the
+      // (organizationId, signature) unique constraint, so two parallel calls
+      // here cannot both create.
+      await context.entities.CriticalAlert.upsert({
         where: {
           organizationId_signature: {
             organizationId: organization.id,
             signature,
           },
         },
-      });
-
-      const message = `${exception.id} requires planner review: ${exception.reason}`;
-      const alert = existingAlert || await context.entities.CriticalAlert.create({
-        data: {
+        create: {
           organization: { connect: { id: organization.id } },
           shipmentException: { connect: { id: persisted.id } },
           signature,
           message,
         },
+        update: {},
       });
 
-      if (!alert.sentAt && organization.alertEmailsEnabled && organization.alertRecipients.length > 0) {
-        try {
-          await sendCriticalAlertEmail(organization.alertRecipients, exception, message);
-          await context.entities.CriticalAlert.update({
-            where: {
-              organizationId_signature: {
-                organizationId: organization.id,
-                signature,
-              },
+      if (!organization.alertEmailsEnabled || organization.alertRecipients.length === 0) return;
+
+      // Atomically claim the send. Postgres ensures only one caller updates
+      // a row from sentAt=null to a timestamp; concurrent racers get
+      // count=0 and skip without sending. This replaces the previous
+      // findUnique-then-update pattern, which read sentAt before any caller
+      // had committed the update and let duplicates through under
+      // back-to-back dashboard fetches.
+      const claim = await context.entities.CriticalAlert.updateMany({
+        where: {
+          organizationId: organization.id,
+          signature,
+          sentAt: null,
+        },
+        data: {
+          sentAt: new Date(),
+          providerMessageId: "wasp-email-sender",
+        },
+      });
+      if (claim.count === 0) return;
+
+      try {
+        await sendCriticalAlertEmail(organization.alertRecipients, exception, message);
+      } catch (error) {
+        console.error("Failed to send RMRoads critical alert email", error);
+        // Mark provider failure but leave sentAt set so the alert is not
+        // retried automatically — manual operator intervention (clearing
+        // sentAt) is the explicit recovery path. Auto-retry would
+        // reintroduce the dup risk.
+        await context.entities.CriticalAlert.update({
+          where: {
+            organizationId_signature: {
+              organizationId: organization.id,
+              signature,
             },
-            data: {
-              sentAt: new Date(),
-              providerMessageId: "wasp-email-sender",
-            },
-          });
-        } catch (error) {
-          console.error("Failed to send RMRoads critical alert email", error);
-          await context.entities.CriticalAlert.update({
-            where: {
-              organizationId_signature: {
-                organizationId: organization.id,
-                signature,
-              },
-            },
-            data: {
-              providerMessageId: "email-send-failed",
-            },
-          });
-        }
+          },
+          data: { providerMessageId: "email-send-failed" },
+        });
       }
     }),
   );
