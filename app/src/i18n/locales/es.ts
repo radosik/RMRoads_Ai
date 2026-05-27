@@ -360,9 +360,15 @@ export default {
     },
     "danger": {
       "title": "Zona de peligro",
-      "deleteHelp": "Eliminar permanentemente esta cuenta y todos los datos del espacio que posees.",
+      "deleteHelp": "Eliminar permanentemente esta cuenta y los datos de los espacios que posees en solitario. Los espacios con otros miembros sobreviven — solo se elimina tu pertenencia.",
       "delete": "Eliminar cuenta",
-      "notWired": "La eliminación de cuenta aún no está conectada en este build. Issue o PR bienvenidos."
+      "confirmTitle": "Esta acción no se puede deshacer.",
+      "confirmHelp": "Escribe el correo de tu cuenta ({{email}}) para confirmar. Se eliminarán todos los envíos, decisiones y señales de los espacios en solitario.",
+      "confirmInput": "Tu correo",
+      "confirmDelete": "Eliminar definitivamente",
+      "deleting": "Eliminando…",
+      "cancel": "Cancelar",
+      "deleteFailed": "No se pudo eliminar la cuenta."
     }
   },
   "pilot": {

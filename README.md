@@ -31,6 +31,24 @@ The project is published as a free, open-source codebase under the MIT license. 
 |---|---|
 | ![Landing](screenshots/landing.png) | |
 
+## How it works
+
+```mermaid
+flowchart LR
+    L[Landing /<br/>pilot form] -->|sign up| A[Auth]
+    A --> W[Workspace / Workbench]
+    CSV[CSV import<br/>or seed demo] --> W
+    S[Manual disruption<br/>signals] --> W
+    W -->|score| Q[Exception queue]
+    Q -->|select| D[Detail panel<br/>+ scenario engine]
+    D -->|approve / defer / reject| R[Decision record<br/>+ outcome tracking]
+    R --> CA[Critical alert<br/>email]
+    R --> WS[Weekly summary<br/>Monday cron]
+    R --> Admin[Admin console:<br/>Pilot Leads · Tenant Health ·<br/>Recommendations · Users]
+```
+
+A planner imports shipments (CSV or demo seed), adds manual disruption signals, then works the **exception queue** — each row carries a deterministic risk score plus a recommended response. Approving, deferring, or rejecting a recommendation records a decision with an audit trail. Critical exceptions trigger an email; the Monday cron sends a weekly pilot summary. The admin console aggregates pilot leads, per-workspace health, and the recommendation log.
+
 ## Tech stack
 
 - [**Wasp**](https://wasp.sh) — TypeScript fullstack DSL (React + Node + Prisma)

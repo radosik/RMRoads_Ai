@@ -1,7 +1,11 @@
 import { Moon, Sun } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { logout } from "wasp/client/auth";
+import { deleteCurrentUserAccount } from "wasp/client/operations";
 import type { User } from "wasp/entities";
 import { Button } from "../client/components/ui/button";
+import { Input } from "../client/components/ui/input";
 import {
   Card,
   CardContent,
@@ -22,6 +26,10 @@ import { LANGUAGE_STORAGE_KEY, SUPPORTED_LANGUAGES, type SupportedLanguage } fro
 export default function AccountPage({ user }: { user: User }) {
   const { t, i18n } = useTranslation();
   const [colorMode, setColorMode] = useColorMode() as [string, (mode: string) => void];
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleLanguageChange = (code: string) => {
     i18n.changeLanguage(code);
@@ -29,6 +37,19 @@ export default function AccountPage({ user }: { user: User }) {
       window.localStorage.setItem(LANGUAGE_STORAGE_KEY, code);
     } catch {
       // localStorage unavailable — language detector falls back.
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleteError("");
+    setIsDeleting(true);
+    try {
+      await deleteCurrentUserAccount({ confirmEmail: deleteConfirm });
+      await logout();
+      window.location.href = "/";
+    } catch (error: any) {
+      setDeleteError(error?.message || t("account.danger.deleteFailed"));
+      setIsDeleting(false);
     }
   };
 
@@ -150,10 +171,57 @@ export default function AccountPage({ user }: { user: User }) {
             <p className="text-sm leading-6 text-muted-foreground">
               {t("account.danger.deleteHelp")}
             </p>
-            <Button variant="destructive" className="justify-self-start" disabled title={t("account.danger.notWired")}>
-              {t("account.danger.delete")}
-            </Button>
-            <p className="text-xs leading-5 text-muted-foreground">{t("account.danger.notWired")}</p>
+            {!deleteOpen ? (
+              <Button
+                variant="destructive"
+                className="justify-self-start"
+                onClick={() => {
+                  setDeleteOpen(true);
+                  setDeleteConfirm("");
+                  setDeleteError("");
+                }}
+              >
+                {t("account.danger.delete")}
+              </Button>
+            ) : (
+              <div className="grid gap-3 rounded border border-destructive/40 bg-destructive/5 p-4">
+                <p className="text-sm font-semibold text-destructive">
+                  {t("account.danger.confirmTitle")}
+                </p>
+                <p className="text-xs leading-5 text-muted-foreground">
+                  {t("account.danger.confirmHelp", { email: user.email || "" })}
+                </p>
+                <Input
+                  aria-label={t("account.danger.confirmInput")}
+                  placeholder={user.email || ""}
+                  value={deleteConfirm}
+                  onChange={(event) => setDeleteConfirm(event.currentTarget.value)}
+                />
+                {deleteError ? (
+                  <p className="text-xs font-semibold text-destructive">{deleteError}</p>
+                ) : null}
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="destructive"
+                    disabled={isDeleting || !deleteConfirm}
+                    onClick={handleDelete}
+                  >
+                    {isDeleting ? t("account.danger.deleting") : t("account.danger.confirmDelete")}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setDeleteOpen(false);
+                      setDeleteConfirm("");
+                      setDeleteError("");
+                    }}
+                    disabled={isDeleting}
+                  >
+                    {t("account.danger.cancel")}
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -360,9 +360,15 @@ export default {
     },
     "danger": {
       "title": "Zone de danger",
-      "deleteHelp": "Supprimer définitivement ce compte et toutes les données d'espace que vous possédez.",
+      "deleteHelp": "Supprime définitivement ce compte et les données des espaces dont vous êtes le seul propriétaire. Les espaces avec d'autres membres restent — seule votre adhésion est retirée.",
       "delete": "Supprimer le compte",
-      "notWired": "La suppression de compte n'est pas encore branchée dans ce build. Issue ou PR bienvenus."
+      "confirmTitle": "Cette action est irréversible.",
+      "confirmHelp": "Saisissez l'e-mail de votre compte ({{email}}) pour confirmer. Toutes les expéditions, décisions et signaux des espaces uniques seront supprimés.",
+      "confirmInput": "Votre e-mail",
+      "confirmDelete": "Supprimer définitivement",
+      "deleting": "Suppression…",
+      "cancel": "Annuler",
+      "deleteFailed": "Impossible de supprimer le compte."
     }
   },
   "pilot": {

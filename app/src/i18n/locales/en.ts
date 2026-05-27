@@ -360,9 +360,15 @@ export default {
     },
     "danger": {
       "title": "Danger zone",
-      "deleteHelp": "Permanently delete this account along with all workspace data you own.",
+      "deleteHelp": "Permanently delete this account along with all workspace data you solely own. Workspaces with other members survive — your membership is just removed.",
       "delete": "Delete account",
-      "notWired": "Account deletion is not yet wired in this build. Open an issue or PR to add the action."
+      "confirmTitle": "This action cannot be undone.",
+      "confirmHelp": "Type your account email ({{email}}) to confirm. All shipments, decisions, and signals in workspaces you solely own will be deleted.",
+      "confirmInput": "Your email",
+      "confirmDelete": "Permanently delete",
+      "deleting": "Deleting…",
+      "cancel": "Cancel",
+      "deleteFailed": "Could not delete the account."
     }
   },
   "pilot": {

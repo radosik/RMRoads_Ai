@@ -360,9 +360,15 @@ export default {
     },
     "danger": {
       "title": "Gefahrenzone",
-      "deleteHelp": "Konto und alle eigenen Workspace-Daten endgültig löschen.",
+      "deleteHelp": "Konto und alle Daten von Workspaces, die nur Sie besitzen, endgültig löschen. Workspaces mit anderen Mitgliedern bleiben bestehen — Ihre Mitgliedschaft wird entfernt.",
       "delete": "Konto löschen",
-      "notWired": "Konto-Löschung ist in diesem Build noch nicht verdrahtet. Issue oder PR willkommen."
+      "confirmTitle": "Diese Aktion kann nicht rückgängig gemacht werden.",
+      "confirmHelp": "Geben Sie Ihre E-Mail ({{email}}) ein, um zu bestätigen. Alle Sendungen, Entscheidungen und Signale in alleinigen Workspaces werden gelöscht.",
+      "confirmInput": "Ihre E-Mail",
+      "confirmDelete": "Endgültig löschen",
+      "deleting": "Löschen…",
+      "cancel": "Abbrechen",
+      "deleteFailed": "Konto konnte nicht gelöscht werden."
     }
   },
   "pilot": {

@@ -287,6 +287,11 @@ action updateIsUserAdminById {
   fn: import { updateIsUserAdminById } from "@src/user/operations",
   entities: [User]
 }
+
+action deleteCurrentUserAccount {
+  fn: import { deleteCurrentUserAccount } from "@src/user/operations",
+  entities: [User, OrganizationMember, Organization, WorkspaceInvitation, ShipmentImport, Shipment, DisruptionEvent, ShipmentException, ExceptionDecision, CriticalAlert]
+}
 //#endregion
 
 //#region Payment

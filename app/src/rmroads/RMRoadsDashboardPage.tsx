@@ -18,6 +18,7 @@ import {
   type ChangeEvent,
   type ReactNode,
 } from "react";
+import { useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import {
   decideRMRoadsException,
@@ -103,12 +104,27 @@ export default function RMRoadsDashboardPage() {
   const [importMessage, setImportMessage] = useState("");
   const [importErrors, setImportErrors] = useState<ImportError[]>([]);
   const [isImporting, setIsImporting] = useState(false);
-  const [ownerFilter, setOwnerFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [riskFilter, setRiskFilter] = useState("all");
-  const [carrierFilter, setCarrierFilter] = useState("all");
-  const [modeFilter, setModeFilter] = useState("all");
-  const [queueSearch, setQueueSearch] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const ownerFilter = searchParams.get("owner") || "all";
+  const statusFilter = searchParams.get("status") || "all";
+  const riskFilter = searchParams.get("risk") || "all";
+  const carrierFilter = searchParams.get("carrier") || "all";
+  const modeFilter = searchParams.get("mode") || "all";
+  const queueSearch = searchParams.get("q") || "";
+  const updateFilterParam = (key: string, value: string) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (!value || value === "all") next.delete(key);
+      else next.set(key, value);
+      return next;
+    }, { replace: true });
+  };
+  const setOwnerFilter = (v: string) => updateFilterParam("owner", v);
+  const setStatusFilter = (v: string) => updateFilterParam("status", v);
+  const setRiskFilter = (v: string) => updateFilterParam("risk", v);
+  const setCarrierFilter = (v: string) => updateFilterParam("carrier", v);
+  const setModeFilter = (v: string) => updateFilterParam("mode", v);
+  const setQueueSearch = (v: string) => updateFilterParam("q", v);
   const [selectedExceptionId, setSelectedExceptionId] = useState("");
   const [selectedScenarioAction, setSelectedScenarioAction] = useState<ScenarioAction | "">("");
   const [decisionNote, setDecisionNote] = useState("");
@@ -117,7 +133,13 @@ export default function RMRoadsDashboardPage() {
   const [signalMessage, setSignalMessage] = useState("");
   const { toast } = useToast();
   const { t } = useTranslation();
-  const dashboardQuery = useQuery(getRMRoadsDashboard);
+  // Poll every 30s so a planner sees decisions made by teammates without
+  // a manual refresh. The Refresh button in the context bar still works
+  // for ad-hoc reloads.
+  const dashboardQuery = useQuery(getRMRoadsDashboard, undefined, {
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+  });
   const dashboard = dashboardQuery.data;
   const shipments = dashboard?.shipments || [];
   const exceptions = dashboard?.exceptions || [];
