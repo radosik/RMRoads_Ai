@@ -14,9 +14,8 @@ build/
 !**/.env.*.example
 *.log
 
-# Claude Code state, agent skill directories, and agent operating manuals.
-# Ignore at any depth.
+# Claude Code state and agent skill directories. Ignore at any depth.
+# CLAUDE.md and AGENTS.md are intentionally tracked as contributor-facing
+# guidance for AI coding agents.
 .claude/
 .agents/
-CLAUDE.md
-AGENTS.md
