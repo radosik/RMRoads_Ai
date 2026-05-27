@@ -119,18 +119,28 @@ const PricingPage = () => {
   return (
     <div className="py-10 lg:mt-10">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
+        <Alert className="mx-auto mb-8 max-w-3xl border-secondary/40 bg-secondary/10">
+          <AlertDescription className="text-sm leading-6">
+            <strong className="font-semibold text-foreground">Payments are opt-in.</strong>{" "}
+            RMRoads AI ships the OpenSaaS payment scaffolding intact (Stripe, Lemon Squeezy, Polar), but no provider is wired up in this build. To enable checkout in your fork, follow{" "}
+            <a
+              href="https://github.com/radosik/RMRoads_Ai/blob/main/app/src/payment/README.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-secondary underline"
+            >
+              app/src/payment/README.md
+            </a>
+            . The cards below are a demo of the layout.
+          </AlertDescription>
+        </Alert>
         <div id="pricing" className="mx-auto max-w-4xl text-center">
           <h2 className="text-foreground mt-2 text-4xl font-bold tracking-tight sm:text-5xl">
             Pick your <span className="text-primary">pricing</span>
           </h2>
         </div>
         <p className="text-muted-foreground mx-auto mt-6 max-w-2xl text-center text-lg leading-8">
-          Choose between Stripe, LemonSqueezy or Polar as your payment provider.
-          Just add your Product IDs! Try it out below with test credit card
-          number <br />
-          <span className="bg-muted text-muted-foreground rounded-md px-2 py-1 font-mono text-sm">
-            4242 4242 4242 4242 4242
-          </span>
+          Stripe, Lemon Squeezy, and Polar are all wired up — set the env vars for one of them and the buttons below become live.
         </p>
         {errorMessage && (
           <Alert variant="destructive" className="mt-8">

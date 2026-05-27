@@ -88,6 +88,12 @@ The app ships with `emailSender.provider = SMTP` pointing at Mailpit. Start Mail
 mailpit            # SMTP on :1025, web UI on http://localhost:8025
 ```
 
+## Payments (optional)
+
+The repo ships the OpenSaaS payment scaffolding intact — **Stripe**, **Lemon Squeezy**, and **Polar** processors, plus `/pricing` and `/checkout` routes and a `/payments-webhook` endpoint. It is **disabled by default** so RMRoads AI stays free to self-host without surprise dependencies.
+
+If you want to monetize your fork, see [`app/src/payment/README.md`](app/src/payment/README.md) for the full opt-in checklist (pick a provider, set env vars, wire your webhook, drop the providers you don't use).
+
 ## Project layout
 
 ```text
