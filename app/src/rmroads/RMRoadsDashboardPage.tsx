@@ -608,7 +608,7 @@ function WorkbenchContextBar({ dashboard, dashboardQuery, exceptions, handleDown
   const actionableCount = exceptions.filter((exception: any) => exception.status === "new" || exception.status === "deferred").length;
 
   return (
-    <div className="flex h-[var(--rmr-context-height)] shrink-0 items-center justify-between gap-4 border-b border-border/30 bg-card-subtle/85 px-[var(--rmr-page-pad)] backdrop-blur dark:bg-[#010f1f]/70">
+    <div className="flex min-h-[var(--rmr-context-height)] shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-border/30 bg-card-subtle/85 px-[var(--rmr-page-pad)] py-1.5 backdrop-blur dark:bg-[#010f1f]/70">
       <div className="flex min-w-0 flex-wrap items-center gap-4">
         <h1 className="text-lg font-semibold leading-none tracking-tight">{t("dashboard.contextBar.title")}</h1>
         <div className="hidden h-5 w-px bg-border/60 sm:block" />
