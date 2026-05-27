@@ -302,6 +302,35 @@ export default {
       "tenantHealth": "Tenant Health",
       "recommendations": "Recommendations",
       "users": "Users"
+    },
+    "overview": {
+      "eyebrow": "Operator console",
+      "title": "RMRoads admin overview",
+      "intro": "Pilot leads, tenant health, recommendation log, and user management for the workspace.",
+      "open": "Open",
+      "tools": {
+        "pilotLeads": {
+          "title": "Pilot Leads",
+          "desc": "Review inbound pilot requests from the marketing form. Update status, export CSV."
+        },
+        "tenantHealth": {
+          "title": "Tenant Health",
+          "desc": "Per-workspace counts, pilot mode, and pre-pilot readiness blockers across organizations."
+        },
+        "recommendations": {
+          "title": "Recommendations",
+          "desc": "Last 100 decisions across workspaces with LLM source, summary, rationale, and latency."
+        },
+        "users": {
+          "title": "Users",
+          "desc": "All registered users — toggle admin role, audit sign-ins, support troubleshooting."
+        }
+      },
+      "about": {
+        "title": "About this build",
+        "body": "RMRoads AI is open source under the MIT license. This admin surface is intentionally small — it only exposes what an operator needs to run the workbench day-to-day.",
+        "docs": "Source and docs:"
+      }
     }
   },
   "account": {

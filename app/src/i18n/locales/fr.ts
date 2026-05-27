@@ -302,6 +302,35 @@ export default {
       "tenantHealth": "État des locataires",
       "recommendations": "Recommandations",
       "users": "Utilisateurs"
+    },
+    "overview": {
+      "eyebrow": "Console opérateur",
+      "title": "Vue d'ensemble admin RMRoads",
+      "intro": "Demandes de pilote, état des locataires, journal des recommandations et gestion des utilisateurs.",
+      "open": "Ouvrir",
+      "tools": {
+        "pilotLeads": {
+          "title": "Demandes de pilote",
+          "desc": "Examinez les demandes entrantes du formulaire marketing. Mettez à jour le statut, exportez CSV."
+        },
+        "tenantHealth": {
+          "title": "État des locataires",
+          "desc": "Compteurs par espace, mode pilote et blockers de préparation pré-pilote pour toutes les organisations."
+        },
+        "recommendations": {
+          "title": "Recommandations",
+          "desc": "Les 100 dernières décisions tous espaces confondus : source LLM, résumé, justification, latence."
+        },
+        "users": {
+          "title": "Utilisateurs",
+          "desc": "Tous les utilisateurs enregistrés — bascule du rôle admin, audit des connexions, support."
+        }
+      },
+      "about": {
+        "title": "À propos de ce build",
+        "body": "RMRoads AI est open source sous licence MIT. Cette surface admin est volontairement minimale — elle expose uniquement ce qu'un opérateur utilise au quotidien.",
+        "docs": "Source et docs :"
+      }
     }
   },
   "account": {

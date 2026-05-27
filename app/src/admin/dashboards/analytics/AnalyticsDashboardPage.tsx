@@ -1,89 +1,107 @@
+import { Activity, ArrowRight, Lightbulb, MailPlus, Sheet } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { type AuthUser } from "wasp/auth";
-import { getDailyStats, useQuery } from "wasp/client/operations";
-import { cn } from "../../../client/utils";
+import { Link as WaspRouterLink, routes } from "wasp/client/router";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../../../client/components/ui/card";
 import DefaultLayout from "../../layout/DefaultLayout";
-import RevenueAndProfitChart from "./RevenueAndProfitChart";
-import SourcesTable from "./SourcesTable";
-import TotalPageViewsCard from "./TotalPageViewsCard";
-import TotalPayingUsersCard from "./TotalPayingUsersCard";
-import TotalRevenueCard from "./TotalRevenueCard";
-import TotalSignupsCard from "./TotalSignupsCard";
 
-const Dashboard = ({ user }: { user: AuthUser }) => {
-  const { data: stats, isLoading, error } = useQuery(getDailyStats);
+const TOOLS = [
+  {
+    icon: MailPlus,
+    titleKey: "admin.overview.tools.pilotLeads.title",
+    descKey: "admin.overview.tools.pilotLeads.desc",
+    to: routes.AdminPilotLeadsRoute.to,
+  },
+  {
+    icon: Activity,
+    titleKey: "admin.overview.tools.tenantHealth.title",
+    descKey: "admin.overview.tools.tenantHealth.desc",
+    to: routes.AdminTenantHealthRoute.to,
+  },
+  {
+    icon: Lightbulb,
+    titleKey: "admin.overview.tools.recommendations.title",
+    descKey: "admin.overview.tools.recommendations.desc",
+    to: routes.AdminRecommendationsRoute.to,
+  },
+  {
+    icon: Sheet,
+    titleKey: "admin.overview.tools.users.title",
+    descKey: "admin.overview.tools.users.desc",
+    to: routes.AdminUsersRoute.to,
+  },
+] as const;
 
-  if (error) {
-    return (
-      <DefaultLayout user={user}>
-        <div className="flex h-full items-center justify-center">
-          <div className="bg-card rounded-lg p-8 shadow-lg">
-            <p className="text-2xl font-bold text-red-500">Error</p>
-            <p className="text-muted-foreground mt-2 text-sm">
-              {error.message || "Something went wrong while fetching stats."}
-            </p>
-          </div>
-        </div>
-      </DefaultLayout>
-    );
-  }
+const Overview = ({ user }: { user: AuthUser }) => {
+  const { t } = useTranslation();
 
   return (
     <DefaultLayout user={user}>
-      <div className="relative">
-        <div
-          className={cn({
-            "opacity-25": !stats,
-          })}
-        >
-          <div className="2xl:gap-7.5 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-4">
-            <TotalPageViewsCard
-              totalPageViews={stats?.dailyStats.totalViews}
-              prevDayViewsChangePercent={
-                stats?.dailyStats.prevDayViewsChangePercent
-              }
-            />
-            <TotalRevenueCard
-              dailyStats={stats?.dailyStats}
-              weeklyStats={stats?.weeklyStats}
-              isLoading={isLoading}
-            />
-            <TotalPayingUsersCard
-              dailyStats={stats?.dailyStats}
-              isLoading={isLoading}
-            />
-            <TotalSignupsCard
-              dailyStats={stats?.dailyStats}
-              isLoading={isLoading}
-            />
-          </div>
+      <header className="mb-8">
+        <p className="rmr-label text-secondary">{t("admin.overview.eyebrow")}</p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight">
+          {t("admin.overview.title")}
+        </h1>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
+          {t("admin.overview.intro")}
+        </p>
+      </header>
 
-          <div className="2xl:mt-7.5 2xl:gap-7.5 mt-4 grid grid-cols-12 gap-4 md:mt-6 md:gap-6">
-            <RevenueAndProfitChart
-              weeklyStats={stats?.weeklyStats}
-              isLoading={isLoading}
-            />
-
-            <div className="col-span-12 xl:col-span-8">
-              <SourcesTable sources={stats?.dailyStats?.sources} />
-            </div>
-          </div>
-        </div>
-
-        {!stats && (
-          <div className="bg-background/50 absolute inset-0 flex items-start justify-center">
-            <div className="bg-card rounded-lg p-8 shadow-lg">
-              <p className="text-foreground text-2xl font-bold">
-                No daily stats generated yet
-              </p>
-              <p className="text-muted-foreground mt-2 text-sm">
-                Stats will appear here once the daily stats job has run
-              </p>
-            </div>
-          </div>
-        )}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-4">
+        {TOOLS.map((tool) => {
+          const Icon = tool.icon;
+          return (
+            <WaspRouterLink key={tool.to} to={tool.to} className="group">
+              <Card className="h-full transition-[transform,border-color] duration-200 group-hover:-translate-y-0.5 group-hover:border-secondary/60">
+                <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                  <CardTitle className="text-base font-semibold">
+                    {t(tool.titleKey)}
+                  </CardTitle>
+                  <Icon className="size-5 text-secondary" />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm leading-6 text-muted-foreground">
+                    {t(tool.descKey)}
+                  </p>
+                  <div className="mt-4 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.08em] text-secondary">
+                    {t("admin.overview.open")}
+                    <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
+                  </div>
+                </CardContent>
+              </Card>
+            </WaspRouterLink>
+          );
+        })}
       </div>
+
+      <Card className="mt-8">
+        <CardHeader>
+          <CardTitle className="text-base font-semibold">
+            {t("admin.overview.about.title")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3 text-sm leading-6 text-muted-foreground">
+          <p>{t("admin.overview.about.body")}</p>
+          <p>
+            {t("admin.overview.about.docs")}{" "}
+            <a
+              href="https://github.com/radosik/RMRoads_Ai"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-secondary underline"
+            >
+              github.com/radosik/RMRoads_Ai
+            </a>
+          </p>
+        </CardContent>
+      </Card>
     </DefaultLayout>
   );
 };
 
-export default Dashboard;
+export default Overview;

@@ -302,6 +302,35 @@ export default {
       "tenantHealth": "Mandantenstatus",
       "recommendations": "Empfehlungen",
       "users": "Benutzer"
+    },
+    "overview": {
+      "eyebrow": "Operator-Konsole",
+      "title": "RMRoads Admin-Übersicht",
+      "intro": "Pilot-Anfragen, Mandantenstatus, Empfehlungsprotokoll und Benutzerverwaltung für den Workspace.",
+      "open": "Öffnen",
+      "tools": {
+        "pilotLeads": {
+          "title": "Pilot-Anfragen",
+          "desc": "Eingehende Pilot-Anfragen aus dem Marketing-Formular prüfen, Status setzen, CSV exportieren."
+        },
+        "tenantHealth": {
+          "title": "Mandantenstatus",
+          "desc": "Workspace-Kennzahlen, Pilot-Modus und Pre-Pilot-Blocker über alle Organisationen hinweg."
+        },
+        "recommendations": {
+          "title": "Empfehlungen",
+          "desc": "Letzte 100 Entscheidungen workspace-übergreifend mit LLM-Quelle, Zusammenfassung, Begründung und Latenz."
+        },
+        "users": {
+          "title": "Benutzer",
+          "desc": "Alle registrierten Benutzer — Admin-Rolle umschalten, Anmeldungen prüfen, Support-Fälle bearbeiten."
+        }
+      },
+      "about": {
+        "title": "Zu diesem Build",
+        "body": "RMRoads AI ist Open Source unter MIT-Lizenz. Diese Admin-Oberfläche ist bewusst klein gehalten — sie zeigt nur, was ein Operator im Alltag braucht.",
+        "docs": "Quellcode und Dokumentation:"
+      }
     }
   },
   "account": {

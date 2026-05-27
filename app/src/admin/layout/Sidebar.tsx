@@ -9,7 +9,6 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router";
-import Logo from "../../client/static/logo.webp";
 import { cn } from "../../client/utils";
 
 interface SidebarProps {
@@ -86,8 +85,13 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
       )}
     >
       <div className="flex items-center justify-between gap-2 px-6 py-5.5 lg:py-6.5">
-        <NavLink to="/">
-          <img src={Logo} alt="Logo" width={50} />
+        <NavLink to="/" className="inline-flex items-baseline font-bold tracking-tight text-[1.2rem]">
+          <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
+            RMRoads
+          </span>
+          <span className="rmr-text-glow ml-1.5 font-extrabold uppercase tracking-[0.14em] text-secondary text-[1rem]">
+            AI
+          </span>
         </NavLink>
 
         <button

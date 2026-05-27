@@ -302,6 +302,35 @@ export default {
       "tenantHealth": "Estado de inquilinos",
       "recommendations": "Recomendaciones",
       "users": "Usuarios"
+    },
+    "overview": {
+      "eyebrow": "Consola del operador",
+      "title": "Resumen admin de RMRoads",
+      "intro": "Solicitudes de piloto, estado de inquilinos, registro de recomendaciones y gestión de usuarios.",
+      "open": "Abrir",
+      "tools": {
+        "pilotLeads": {
+          "title": "Solicitudes de piloto",
+          "desc": "Revisa las solicitudes entrantes del formulario. Actualiza estado, exporta CSV."
+        },
+        "tenantHealth": {
+          "title": "Estado de inquilinos",
+          "desc": "Métricas por espacio, modo piloto y bloqueos de preparación pre-piloto en todas las organizaciones."
+        },
+        "recommendations": {
+          "title": "Recomendaciones",
+          "desc": "Últimas 100 decisiones entre espacios con fuente LLM, resumen, justificación y latencia."
+        },
+        "users": {
+          "title": "Usuarios",
+          "desc": "Todos los usuarios registrados — alternar rol admin, auditar accesos, soporte."
+        }
+      },
+      "about": {
+        "title": "Sobre este build",
+        "body": "RMRoads AI es de código abierto con licencia MIT. Esta superficie admin es deliberadamente pequeña — solo expone lo que un operador necesita en el día a día.",
+        "docs": "Código y documentación:"
+      }
     }
   },
   "account": {
