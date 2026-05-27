@@ -9,6 +9,18 @@ updates:
       - "dependencies"
     commit-message:
       prefix: "chore(deps)"
+    ignore:
+      # Payments are opt-in; the provider SDKs are scaffolded but inactive
+      # by default. Avoid weekly noise PRs against SDKs nobody currently
+      # depends on at runtime. Remove these entries when you enable a
+      # provider so security/feature updates flow through normally.
+      - dependency-name: "@polar-sh/sdk"
+      - dependency-name: "@lemonsqueezy/lemonsqueezy.js"
+      - dependency-name: "stripe"
+      # @prisma/client is pinned by Wasp; bumping it independently causes
+      # type mismatches between user code and the generated SDK.
+      - dependency-name: "@prisma/client"
+      - dependency-name: "prisma"
 
   - package-ecosystem: "npm"
     directory: "/e2e-tests"
@@ -20,6 +32,10 @@ updates:
       - "e2e"
     commit-message:
       prefix: "chore(deps)"
+    ignore:
+      # Same Wasp-pinned Prisma rationale as /app.
+      - dependency-name: "@prisma/client"
+      - dependency-name: "prisma"
 
   - package-ecosystem: "github-actions"
     directory: "/"
