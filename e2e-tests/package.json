@@ -17,7 +17,7 @@
     "local:e2e:start-stripe": "stripe listen --forward-to localhost:3001/payments-webhook &"
   },
   "dependencies": {
-    "@prisma/client": "5.19.1",
+    "@prisma/client": "7.8.0",
     "@wasp.sh/wasp-app-runner": "0.0.10",
     "prisma": "5.19.1"
   },
