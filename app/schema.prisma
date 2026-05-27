@@ -15,17 +15,17 @@ model User {
   username                  String?         @unique
   isAdmin                   Boolean         @default(false)
 
+  // Payment scaffolding inherited from OpenSaaS. Unused in the default RMRoads
+  // build but kept so forks can opt in to commercialization without re-modeling.
+  // The payment/ folder still references these fields; remove them only if you
+  // also drop src/payment/ and the related routes from main.wasp.
   paymentProcessorUserId    String?         @unique
-  lemonSqueezyCustomerPortalUrl String?     // You can delete this if you're not using Lemon Squeezy as your payments processor.
+  lemonSqueezyCustomerPortalUrl String?
   subscriptionStatus        String?         // 'active', 'cancel_at_period_end', 'past_due', 'deleted'
   subscriptionPlan          String?         // 'hobby', 'pro'
   datePaid                  DateTime?
   credits                   Int             @default(3)
 
-  gptResponses              GptResponse[]
-  contactFormMessages       ContactFormMessage[]
-  tasks                     Task[]
-  files                     File[]
   organizationMemberships   OrganizationMember[]
   sentWorkspaceInvitations   WorkspaceInvitation[] @relation("WorkspaceInvitationSentBy")
   shipmentImports           ShipmentImport[]
@@ -257,41 +257,6 @@ model PilotLead {
   @@index([status])
 }
 
-model GptResponse {
-  id                        String          @id @default(uuid())
-  createdAt                 DateTime        @default(now())
-  updatedAt                 DateTime        @updatedAt
-
-  user                      User            @relation(fields: [userId], references: [id])
-  userId                    String
-
-  content                   String
-}
-
-model Task {
-  id                        String          @id @default(uuid())
-  createdAt                 DateTime        @default(now())
-
-  user                      User            @relation(fields: [userId], references: [id])
-  userId                    String
-
-  description               String
-  time                      String          @default("1")
-  isDone                    Boolean         @default(false)
-}
-
-model File {
-  id                        String          @id @default(uuid())
-  createdAt                 DateTime        @default(now())
-
-  user                      User            @relation(fields: [userId], references: [id])
-  userId                    String
-
-  name                      String
-  type                      String
-  s3Key                     String
-}
-
 model DailyStats {
   id                               Int             @id @default(autoincrement())
   date                             DateTime        @default(now()) @unique
@@ -327,14 +292,3 @@ model Logs {
   level                    String
 }
 
-model ContactFormMessage {
-  id                        String          @id @default(uuid())
-  createdAt                 DateTime        @default(now())
-
-  user                      User            @relation(fields: [userId], references: [id])
-  userId                    String
-
-  content                   String
-  isRead                    Boolean         @default(false)
-  repliedAt                 DateTime?
-}
