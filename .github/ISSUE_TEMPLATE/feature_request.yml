@@ -1,0 +1,45 @@
+name: Feature request
+description: Suggest a new feature or workflow
+labels: ["feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the suggestion. Before opening, check [CONTRIBUTING.md](../../CONTRIBUTING.md)
+        "Out of scope" — a few things are off-limits by design.
+
+  - type: textarea
+    id: usecase
+    attributes:
+      label: Use case
+      description: What are you trying to do? Who's the user, what's the pain?
+      placeholder: |
+        As a planner reviewing the exception queue, I'd benefit from X because Y.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How would this look in the UI / API? Rough is fine.
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any workarounds you tried; why they don't quite fit.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: I've checked
+      options:
+        - label: This isn't on the "Out of scope" list in CONTRIBUTING.md.
+          required: true
+        - label: I searched existing issues for similar requests.
+          required: true
