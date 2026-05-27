@@ -15,7 +15,9 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Wasp 0.23 requires Node 24.14.1+; bump this when Wasp's
+          # node engine minimum changes.
+          node-version: "24"
           cache: npm
           cache-dependency-path: |
             app/package-lock.json
