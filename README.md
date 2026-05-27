@@ -160,10 +160,17 @@ The app ships in **English, German, French, Spanish**. The language switcher liv
 
 Translations are TypeScript modules (not JSON) because Wasp's SDK build doesn't enable `resolveJsonModule`.
 
+## Contributing with AI agents
+
+The repo ships [`app/AGENTS.md`](app/AGENTS.md) and [`app/CLAUDE.md`](app/CLAUDE.md) as first-class contributor docs — pointed at AI coding agents (Claude Code, Cursor, Cline, Aider, Continue) and humans driving them. They follow the [agents.md](https://agents.md) open convention, so any agent that picks up the repo will find shared context: project shape, tenant-scoping rules, the i18n-in-TS-not-JSON gotcha, commit style, and the common landmines (React event capture, Wasp operation URL naming, Playwright + Vite preamble, etc.).
+
+Drop one of these tools into a fresh clone and it will already know how the project is organized — no preamble required.
+
 ## Contributing
 
 Pull requests are welcome. A few ground rules:
 
+- Read [`app/AGENTS.md`](app/AGENTS.md) first — it covers the hard rules (tenant scoping, `entities: [...]` lists, locales-as-TS, no Claude attribution).
 - Keep new features behind small slices — see [docs/rmroads-ai-plan/](docs/rmroads-ai-plan/) for the existing plan docs (gitignored locally; included in upstream releases).
 - Commit subjects ≤ 50 chars, imperative mood, Conventional Commits prefix where it fits.
 - All Prisma writes must be org-scoped — RMRoads is multi-tenant by design.
