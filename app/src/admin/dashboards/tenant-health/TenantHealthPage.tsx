@@ -36,7 +36,12 @@ function AdminTenantHealth({ user }: { user: AuthUser }) {
               <p className="text-sm font-semibold text-destructive">Could not load tenant health.</p>
             ) : null}
             {!tenantHealthQuery.isLoading && tenants.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No RMRoads workspaces yet.</p>
+              <div className="rounded border border-dashed border-border bg-card-subtle/40 p-8 text-center">
+                <h3 className="text-base font-semibold text-foreground">No workspaces yet</h3>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  Each user gets a workspace on first sign-in. Sign up at the public landing or seed the demo data from the workbench side rail to populate this view.
+                </p>
+              </div>
             ) : null}
             {tenants.length ? (
               <div className="max-w-full overflow-hidden rounded-md border border-border">

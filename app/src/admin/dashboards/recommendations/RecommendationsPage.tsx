@@ -90,7 +90,12 @@ function AdminRecommendations({ user }: { user: AuthUser }) {
               <p className="text-sm font-semibold text-destructive">Could not load recommendation log.</p>
             ) : null}
             {!logQuery.isLoading && rows.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No decisions recorded yet.</p>
+              <div className="rounded border border-dashed border-border bg-card-subtle/40 p-8 text-center">
+                <h3 className="text-base font-semibold text-foreground">No decisions recorded yet</h3>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  Planner decisions on the workbench show up here with the LLM source, latency, and rationale that fed the recommendation.
+                </p>
+              </div>
             ) : null}
             {rows.length ? (
               <div className="max-w-full overflow-hidden rounded-md border border-border">

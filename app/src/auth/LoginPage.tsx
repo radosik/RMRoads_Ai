@@ -12,7 +12,7 @@ export default function Login() {
     <AuthPageLayout>
       <LoginForm />
       <br />
-      <span className="text-sm font-medium text-gray-900 dark:text-gray-900">
+      <span className="text-sm font-medium text-foreground">
         <Trans
           i18nKey="auth.login.noAccount"
           components={{
@@ -23,7 +23,7 @@ export default function Login() {
         />
       </span>
       <br />
-      <span className="text-sm font-medium text-gray-900">
+      <span className="text-sm font-medium text-foreground">
         <Trans
           i18nKey="auth.login.forgotPassword"
           components={{

@@ -8,7 +8,7 @@ export function PasswordResetPage() {
     <AuthPageLayout>
       <ResetPasswordForm />
       <br />
-      <span className="text-sm font-medium text-gray-900">
+      <span className="text-sm font-medium text-foreground">
         <Trans
           i18nKey="auth.passwordReset.allOkay"
           components={{

@@ -91,7 +91,12 @@ function AdminPilotLeads({ user }: { user: AuthUser }) {
             {isLoading ? <p className="text-sm text-muted-foreground">Loading pilot leads...</p> : null}
             {error ? <p className="text-sm font-semibold text-red-700 dark:text-red-300">Could not load pilot leads.</p> : null}
             {!isLoading && !leads.length ? (
-              <p className="text-sm text-muted-foreground">No pilot requests yet.</p>
+              <div className="rounded border border-dashed border-border bg-card-subtle/40 p-8 text-center">
+                <h3 className="text-base font-semibold text-foreground">No pilot requests yet</h3>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  Requests submitted on the public pilot page appear here. Share the link with prospects to start collecting them.
+                </p>
+              </div>
             ) : null}
             {leads.length ? (
               <div className="max-w-full overflow-hidden rounded-md border border-border">

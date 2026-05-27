@@ -12,7 +12,7 @@ export function Signup() {
     <AuthPageLayout>
       <SignupForm />
       <br />
-      <span className="text-sm font-medium text-gray-900">
+      <span className="text-sm font-medium text-foreground">
         <Trans
           i18nKey="auth.signup.haveAccount"
           components={{

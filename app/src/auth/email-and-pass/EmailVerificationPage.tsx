@@ -8,7 +8,7 @@ export function EmailVerificationPage() {
     <AuthPageLayout>
       <VerifyEmailForm />
       <br />
-      <span className="text-sm font-medium text-gray-900">
+      <span className="text-sm font-medium text-foreground">
         <Trans
           i18nKey="auth.emailVerification.allOkay"
           components={{
