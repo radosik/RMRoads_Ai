@@ -22,9 +22,14 @@ jobs:
             e2e-tests/package-lock.json
 
       - name: Install Wasp CLI
-        # 0.21+ ships as an npm package; the old curl installer requires
-        # a -v <version> argument and points users at this command anyway.
-        run: npm install -g @wasp.sh/wasp-cli
+        # 0.21+ ships as an npm package with platform-specific binaries as
+        # optionalDependencies. Global installs sometimes skip optionals, so
+        # we install the linux-x64-glibc binary explicitly to be safe.
+        # `--include=optional` is belt-and-braces for older npm versions.
+        run: |
+          npm install -g --include=optional \
+            @wasp.sh/wasp-cli \
+            @wasp.sh/wasp-cli-linux-x64-glibc
 
       - name: wasp version
         run: wasp version
