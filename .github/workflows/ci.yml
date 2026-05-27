@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -19,38 +20,26 @@ jobs:
           cache-dependency-path: |
             app/package-lock.json
             e2e-tests/package-lock.json
+
       - name: Install Wasp CLI
-        run: curl -sSL https://get.wasp.sh/installer.sh | sh
-      - name: Add wasp to PATH
-        run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+        # 0.21+ ships as an npm package; the old curl installer requires
+        # a -v <version> argument and points users at this command anyway.
+        run: npm install -g @wasp.sh/wasp-cli
+
       - name: wasp version
         run: wasp version
+
       - name: Install app deps
         working-directory: app
         run: npm ci
-      - name: Generate Wasp SDK
-        working-directory: app
-        run: wasp build || true
-      - name: Typecheck
-        working-directory: app
-        run: npm exec tsc -- --noEmit || true
 
-  e2e:
-    name: Playwright
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: e2e-tests/package-lock.json
-      - name: Install e2e deps
-        working-directory: e2e-tests
-        run: npm ci
-      - name: Install Playwright browsers
-        working-directory: e2e-tests
-        run: npx playwright install --with-deps chromium
-      - name: Skip — needs Wasp + Postgres
-        run: echo "Full E2E run requires Wasp CLI + Postgres service; wire up when ready."
+      - name: Generate Wasp SDK
+        # `wasp build` validates main.wasp + schema.prisma and generates
+        # the SDK and server/client output under .wasp/build/. No database
+        # connection required for this step — only for migrations.
+        working-directory: app
+        run: wasp build
+
+      - name: Typecheck user code
+        working-directory: app
+        run: npm exec tsc -- --noEmit
