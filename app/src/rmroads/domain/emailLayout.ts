@@ -80,7 +80,7 @@ export function wrapBrandedEmail(opts: BrandedEmailInput): string {
             <td style="padding:24px 4px 0;text-align:left;font-size:12px;color:${BRAND.muted};line-height:1.6;">
               ${footerNote}
               <p style="margin:0 0 6px;">Recommendations are decision support. Planner approval is required.</p>
-              <p style="margin:0;">© ${new Date().getFullYear()} RMRoads AI · Disruption response workbench</p>
+              <p style="margin:0;">${new Date().getFullYear()} RMRoads AI · Disruption response workbench · Open source</p>
             </td>
           </tr>
         </table>

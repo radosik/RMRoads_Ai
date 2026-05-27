@@ -44,9 +44,9 @@ export function RMRoadsFooter() {
     { name: t("footer.links.pilotBrief"), href: "/pilot" },
   ];
   const legalLinks: FooterLink[] = [
-    { name: t("footer.links.privacy"), href: "#" },
-    { name: t("footer.links.terms"), href: "#" },
-    { name: t("footer.links.cookies"), href: "#" },
+    { name: t("footer.links.privacy"), href: "/privacy" },
+    { name: t("footer.links.terms"), href: "/terms" },
+    { name: t("footer.links.cookies"), href: "/cookies" },
   ];
   const plannerLinks: FooterLink[] = [
     { name: t("footer.links.workspaceLink"), href: "/rmroads" },

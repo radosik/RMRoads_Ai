@@ -15,19 +15,11 @@ app OpenSaaS {
     "<meta property='og:type' content='website' />",
     "<meta property='og:title' content='RMRoads AI' />",
     "<meta property='og:site_name' content='RMRoads AI' />",
-    "<meta property='og:url' content='https://your-saas-app.com' />",
     "<meta property='og:description' content='Rank shipment exceptions, compare recovery scenarios, and keep planner approval in the loop.' />",
-    "<meta property='og:image' content='https://your-saas-app.com/public-banner.webp' />",
-    "<meta name='twitter:image' content='https://your-saas-app.com/public-banner.webp' />",
-    "<meta name='twitter:image:width' content='800' />",
-    "<meta name='twitter:image:height' content='400' />",
     "<meta name='twitter:card' content='summary_large_image' />",
-    // TODO: You can put your Plausible analytics scripts below (https://docs.opensaas.sh/guides/analytics/):
-    // NOTE: Plausible does not use Cookies, so you can simply add the scripts here.
-    // Google, on the other hand, does, so you must instead add the script dynamically
-    // via the Cookie Consent component after the user clicks the "Accept" cookies button.
-    "<script async data-domain='<your-site-id>' src='https://plausible.io/js/script.js'></script>",  // for production
-    "<script async data-domain='<your-site-id>' src='https://plausible.io/js/script.local.js'></script>",  // for development
+    // Self-hosters wanting analytics can drop Plausible / Umami / Google scripts here.
+    // See https://docs.opensaas.sh/guides/analytics/. Open-source default ships with no
+    // analytics so cloned forks don't leak telemetry to the original repo owner.
   ],
 
   // 🔐 Auth out of the box! https://wasp.sh/docs/auth/overview
@@ -39,7 +31,7 @@ app OpenSaaS {
       email: {
         fromField: {
           name: "RMRoads AI",
-          email: "me@example.com"
+          email: "noreply@rmroads.localhost"
         },
         emailVerification: {
           clientRoute: EmailVerificationRoute,
@@ -98,7 +90,7 @@ app OpenSaaS {
       name: "RMRoads AI",
       // When using a real provider, this must match a verified sender on
       // that provider's account. With Mailpit this address is irrelevant.
-      email: "me@example.com"
+      email: "noreply@rmroads.localhost"
     },
   },
 }
@@ -106,6 +98,21 @@ app OpenSaaS {
 route LandingPageRoute { path: "/", to: LandingPage }
 page LandingPage {
   component: import RMRoadsProductPage from "@src/rmroads/RMRoadsProductPage"
+}
+
+route PrivacyRoute { path: "/privacy", to: PrivacyPage }
+page PrivacyPage {
+  component: import { PrivacyPage } from "@src/legal/LegalPages"
+}
+
+route TermsRoute { path: "/terms", to: TermsPage }
+page TermsPage {
+  component: import { TermsPage } from "@src/legal/LegalPages"
+}
+
+route CookiesRoute { path: "/cookies", to: CookiesPage }
+page CookiesPage {
+  component: import { CookiesPage } from "@src/legal/LegalPages"
 }
 
 route RMRoadsDashboardRoute { path: "/rmroads", to: RMRoadsDashboardPage }
