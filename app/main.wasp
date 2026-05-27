@@ -6,7 +6,8 @@ app OpenSaaS {
   title: "RMRoads AI",
 
   head: [
-    "<link rel='icon' href='/favicon.ico' />",
+    "<link rel='icon' type='image/svg+xml' href='/favicon.svg' />",
+    "<link rel='icon' type='image/x-icon' href='/favicon.ico' />",
 
     "<meta name='description' content='RMRoads AI helps supply chain teams rank shipment disruption risk and approve response actions.' />",
     "<meta name='author' content='RMRoads AI' />",
