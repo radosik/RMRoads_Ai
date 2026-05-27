@@ -1,55 +1,29 @@
 import { useEffect, useRef } from "react";
 import { animate, stagger } from "animejs";
+import { useTranslation } from "react-i18next";
 
 type Row = {
   id: string;
-  customer: string;
+  customerKey: string;
   lane: string;
-  reason: string;
+  reasonKey: string;
   risk: number;
   state: "critical" | "high" | "medium";
 };
 
 const ROWS: Row[] = [
-  {
-    id: "SHP-1001",
-    customer: "Northstar Retail",
-    lane: "Veracruz → Atlanta",
-    reason: "Port congestion",
-    risk: 95,
-    state: "critical",
-  },
-  {
-    id: "SHP-1002",
-    customer: "Atlas Medical",
-    lane: "Shanghai → Long Beach",
-    reason: "Carrier delay",
-    risk: 84,
-    state: "high",
-  },
-  {
-    id: "SHP-1003",
-    customer: "Foundry Parts",
-    lane: "Hamburg → Chicago",
-    reason: "Customs hold",
-    risk: 78,
-    state: "high",
-  },
-  {
-    id: "SHP-1004",
-    customer: "Helix Coffee",
-    lane: "Long Beach → Phoenix",
-    reason: "Weather risk",
-    risk: 62,
-    state: "medium",
-  },
+  { id: "SHP-1001", customerKey: "northstar", lane: "Veracruz → Atlanta", reasonKey: "portCongestion", risk: 95, state: "critical" },
+  { id: "SHP-1002", customerKey: "atlas", lane: "Shanghai → Long Beach", reasonKey: "carrierDelay", risk: 84, state: "high" },
+  { id: "SHP-1003", customerKey: "foundry", lane: "Hamburg → Chicago", reasonKey: "customsHold", risk: 78, state: "high" },
+  { id: "SHP-1004", customerKey: "helix", lane: "Long Beach → Phoenix", reasonKey: "weather", risk: 62, state: "medium" },
 ];
 
-const SCENARIOS: Array<{ action: string; cost: string; eta: string; primary?: boolean }> = [
-  { action: "Wait", cost: "$0", eta: "+2d" },
-  { action: "Reroute", cost: "$3.4k", eta: "+1d" },
-  { action: "Expedite", cost: "$8.1k", eta: "−6h", primary: true },
-];
+const SCENARIO_IDS = ["wait", "reroute", "expedite"] as const;
+const SCENARIO_VALUES: Record<(typeof SCENARIO_IDS)[number], { cost: string; eta: string; primary?: boolean }> = {
+  wait: { cost: "$0", eta: "+2d" },
+  reroute: { cost: "$3.4k", eta: "+1d" },
+  expedite: { cost: "$8.1k", eta: "−6h", primary: true },
+};
 
 function stateBadge(state: Row["state"]): string {
   switch (state) {
@@ -64,6 +38,7 @@ function stateBadge(state: Row["state"]): string {
 
 export function RMRoadsWorkbenchPreview() {
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     const root = rootRef.current;
@@ -123,17 +98,17 @@ export function RMRoadsWorkbenchPreview() {
       <div className="flex items-center justify-between border-b border-border/30 pb-3">
         <div className="rmr-label flex items-center gap-2 text-secondary">
           <span className="rmr-glow inline-block size-2 rounded-full bg-secondary" />
-          Risk intelligence · Live
+          {t("preview.header.title")}
         </div>
-        <div className="rmr-data text-muted-foreground">04 active</div>
+        <div className="rmr-data text-muted-foreground">{t("preview.header.active", { count: 4 })}</div>
       </div>
 
       <div className="min-h-0">
         <div className="grid grid-cols-[1.4fr_2fr_1.6fr_auto] gap-3 border-b border-border/20 pb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-          <div>Shipment</div>
-          <div>Lane</div>
-          <div>Reason</div>
-          <div className="text-right">Risk</div>
+          <div>{t("preview.cols.shipment")}</div>
+          <div>{t("preview.cols.lane")}</div>
+          <div>{t("preview.cols.reason")}</div>
+          <div className="text-right">{t("preview.cols.risk")}</div>
         </div>
         <div className="mt-1 divide-y divide-border/10">
           {ROWS.map((row) => {
@@ -151,11 +126,11 @@ export function RMRoadsWorkbenchPreview() {
                 }
               >
                 <div className="min-w-0">
-                  <div className="truncate font-semibold text-foreground">{row.customer}</div>
+                  <div className="truncate font-semibold text-foreground">{t(`preview.customers.${row.customerKey}`)}</div>
                   <div className="rmr-data truncate text-muted-foreground">{row.id}</div>
                 </div>
                 <div className="rmr-data truncate text-foreground">{row.lane}</div>
-                <div className="truncate text-muted-foreground">{row.reason}</div>
+                <div className="truncate text-muted-foreground">{t(`preview.reasons.${row.reasonKey}`)}</div>
                 <div
                   className={
                     "rmr-data justify-self-end rounded border px-2 py-0.5 " + stateBadge(row.state)
@@ -174,38 +149,41 @@ export function RMRoadsWorkbenchPreview() {
         className="rounded border border-secondary/40 bg-card-subtle/70 p-3 backdrop-blur"
       >
         <div className="mb-2 flex items-center justify-between">
-          <span className="rmr-label text-secondary">Scenario ready · SHP-1001</span>
+          <span className="rmr-label text-secondary">{t("preview.scenario.ready", { id: "SHP-1001" })}</span>
           <span className="rmr-label rounded bg-secondary/15 px-2 py-0.5 text-secondary">
             95/100
           </span>
         </div>
         <div className="grid grid-cols-3 gap-2 text-sm">
-          {SCENARIOS.map((s) => (
-            <div
-              key={s.action}
-              className={
-                "rounded border px-2 py-2 " +
-                (s.primary
-                  ? "border-secondary/60 bg-secondary/15 text-foreground"
-                  : "border-border/30 bg-background/40 text-muted-foreground")
-              }
-            >
-              <div className="rmr-label">{s.action}</div>
-              <div className="mt-1 flex items-baseline justify-between">
-                <span className="rmr-data">{s.cost}</span>
-                <span className="rmr-data">{s.eta}</span>
+          {SCENARIO_IDS.map((id) => {
+            const s = SCENARIO_VALUES[id];
+            return (
+              <div
+                key={id}
+                className={
+                  "rounded border px-2 py-2 " +
+                  (s.primary
+                    ? "border-secondary/60 bg-secondary/15 text-foreground"
+                    : "border-border/30 bg-background/40 text-muted-foreground")
+                }
+              >
+                <div className="rmr-label">{t(`preview.scenarioActions.${id}`)}</div>
+                <div className="mt-1 flex items-baseline justify-between">
+                  <span className="rmr-data">{s.cost}</span>
+                  <span className="rmr-data">{s.eta}</span>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         <div className="mt-3 flex items-center justify-between text-xs">
-          <span className="text-muted-foreground">Planner approval required</span>
+          <span className="text-muted-foreground">{t("preview.scenario.approvalRequired")}</span>
           <div className="flex gap-2">
             <button className="rmr-label rounded border border-border/40 px-2 py-1 text-muted-foreground hover:text-foreground">
-              Defer
+              {t("preview.scenario.defer")}
             </button>
             <button className="rmr-label rounded bg-secondary px-3 py-1 text-secondary-foreground">
-              Approve
+              {t("preview.scenario.approve")}
             </button>
           </div>
         </div>

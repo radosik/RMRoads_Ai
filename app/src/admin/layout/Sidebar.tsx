@@ -1,30 +1,38 @@
 import {
-  Calendar,
   Activity,
-  ChevronDown,
-  ChevronUp,
   LayoutDashboard,
-  LayoutTemplate,
+  Lightbulb,
   MailPlus,
-  Settings,
   Sheet,
   X,
 } from "lucide-react";
-import React, { useEffect, useRef, useState } from "react";
-import { NavLink, useLocation } from "react-router";
+import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { NavLink } from "react-router";
 import Logo from "../../client/static/logo.webp";
 import { cn } from "../../client/utils";
-import SidebarLinkGroup from "./SidebarLinkGroup";
 
 interface SidebarProps {
   sidebarOpen: boolean;
   setSidebarOpen: (arg: boolean) => void;
 }
 
-const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
-  const location = useLocation();
-  const { pathname } = location;
+type SidebarItem = {
+  to: string;
+  icon: typeof LayoutDashboard;
+  labelKey: string;
+};
 
+const ITEMS: SidebarItem[] = [
+  { to: "/admin", icon: LayoutDashboard, labelKey: "admin.sidebar.overview" },
+  { to: "/admin/pilot-leads", icon: MailPlus, labelKey: "admin.sidebar.pilotLeads" },
+  { to: "/admin/tenant-health", icon: Activity, labelKey: "admin.sidebar.tenantHealth" },
+  { to: "/admin/recommendations", icon: Lightbulb, labelKey: "admin.sidebar.recommendations" },
+  { to: "/admin/users", icon: Sheet, labelKey: "admin.sidebar.users" },
+];
+
+const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
+  const { t } = useTranslation();
   const trigger = useRef<any>(null);
   const sidebar = useRef<any>(null);
 
@@ -33,7 +41,6 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
     storedSidebarExpanded === null ? false : storedSidebarExpanded === "true",
   );
 
-  // close on click outside
   useEffect(() => {
     const clickHandler = ({ target }: MouseEvent) => {
       if (!sidebar.current || !trigger.current) return;
@@ -49,7 +56,6 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
     return () => document.removeEventListener("click", clickHandler);
   });
 
-  // close if the esc key is pressed
   useEffect(() => {
     const keyHandler = ({ keyCode }: KeyboardEvent) => {
       if (!sidebarOpen || keyCode !== 27) return;
@@ -79,7 +85,6 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
         },
       )}
     >
-      {/* <!-- SIDEBAR HEADER --> */}
       <div className="flex items-center justify-between gap-2 px-6 py-5.5 lg:py-6.5">
         <NavLink to="/">
           <img src={Logo} alt="Logo" width={50} />
@@ -95,202 +100,40 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
           <X />
         </button>
       </div>
-      {/* <!-- SIDEBAR HEADER --> */}
 
       <div className="no-scrollbar flex flex-col overflow-y-auto duration-300 ease-linear">
-        {/* <!-- Sidebar Menu --> */}
         <nav className="mt-5 px-4 py-4 lg:mt-9 lg:px-6">
-          {/* <!-- Menu Group --> */}
           <div>
             <h3 className="text-muted-foreground mb-4 ml-4 text-sm font-semibold">
-              MENU
+              {t("admin.sidebar.menuHeader")}
             </h3>
 
             <ul className="mb-6 flex flex-col gap-1.5">
-              {/* <!-- Menu Item Dashboard --> */}
-              <NavLink
-                to="/admin"
-                end
-                className={({ isActive }) =>
-                  cn(
-                    "text-muted-foreground hover:bg-accent hover:text-accent-foreground group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium duration-300 ease-in-out",
-                    {
-                      "bg-accent text-accent-foreground": isActive,
-                    },
-                  )
-                }
-              >
-                <LayoutDashboard />
-                Dashboard
-              </NavLink>
-
-              {/* <!-- Menu Item Dashboard --> */}
-
-              {/* <!-- Menu Item Users --> */}
-              <li>
-                <NavLink
-                  to="/admin/users"
-                  end
-                  className={({ isActive }) =>
-                    cn(
-                      "text-muted-foreground hover:bg-accent hover:text-accent-foreground group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium duration-300 ease-in-out",
-                      {
-                        "bg-accent text-accent-foreground": isActive,
-                      },
-                    )
-                  }
-                >
-                  <Sheet />
-                  Users
-                </NavLink>
-              </li>
-              {/* <!-- Menu Item Users --> */}
-
-              <li>
-                <NavLink
-                  to="/admin/pilot-leads"
-                  end
-                  className={({ isActive }) =>
-                    cn(
-                      "text-muted-foreground hover:bg-accent hover:text-accent-foreground group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium duration-300 ease-in-out",
-                      {
-                        "bg-accent text-accent-foreground": isActive,
-                      },
-                    )
-                  }
-                >
-                  <MailPlus />
-                  Pilot Leads
-                </NavLink>
-              </li>
-
-              <li>
-                <NavLink
-                  to="/admin/tenant-health"
-                  end
-                  className={({ isActive }) =>
-                    cn(
-                      "text-muted-foreground hover:bg-accent hover:text-accent-foreground group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium duration-300 ease-in-out",
-                      {
-                        "bg-accent text-accent-foreground": isActive,
-                      },
-                    )
-                  }
-                >
-                  <Activity />
-                  Tenant Health
-                </NavLink>
-              </li>
-
-              {/* <!-- Menu Item Settings --> */}
-              <li>
-                <NavLink
-                  to="/admin/settings"
-                  end
-                  className={({ isActive }) =>
-                    cn(
-                      "text-muted-foreground hover:bg-accent hover:text-accent-foreground group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium duration-300 ease-in-out",
-                      {
-                        "bg-accent text-accent-foreground": isActive,
-                      },
-                    )
-                  }
-                >
-                  <Settings />
-                  Settings
-                </NavLink>
-              </li>
-              {/* <!-- Menu Item Settings --> */}
-            </ul>
-          </div>
-
-          {/* <!-- Others Group --> */}
-          <div>
-            <h3 className="text-muted-foreground mb-4 ml-4 text-sm font-semibold">
-              Extra Components
-            </h3>
-
-            <ul className="mb-6 flex flex-col gap-1.5">
-              {/* <!-- Menu Item Calendar --> */}
-              <li>
-                <NavLink
-                  to="/admin/calendar"
-                  end
-                  className={({ isActive }) =>
-                    cn(
-                      "text-muted-foreground hover:bg-accent hover:text-accent-foreground group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium duration-300 ease-in-out",
-                      {
-                        "bg-accent text-accent-foreground": isActive,
-                      },
-                    )
-                  }
-                >
-                  <Calendar />
-                  Calendar
-                </NavLink>
-              </li>
-              {/* <!-- Menu Item Calendar --> */}
-
-              {/* <!-- Menu Item Ui Elements --> */}
-              <SidebarLinkGroup
-                activeCondition={pathname === "/ui" || pathname.includes("ui")}
-              >
-                {(handleClick, open) => {
-                  return (
-                    <React.Fragment>
-                      <NavLink
-                        to="#"
-                        className={cn(
+              {ITEMS.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <li key={item.to}>
+                    <NavLink
+                      to={item.to}
+                      end
+                      className={({ isActive }) =>
+                        cn(
                           "text-muted-foreground hover:bg-accent hover:text-accent-foreground group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium duration-300 ease-in-out",
                           {
-                            "bg-accent text-accent-foreground":
-                              pathname.includes("ui"),
+                            "bg-accent text-accent-foreground": isActive,
                           },
-                        )}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          sidebarExpanded
-                            ? handleClick()
-                            : setSidebarExpanded(true);
-                        }}
-                      >
-                        <LayoutTemplate />
-                        UI Elements
-                        {open ? <ChevronUp /> : <ChevronDown />}
-                      </NavLink>
-                      {/* <!-- Dropdown Menu Start --> */}
-                      <div
-                        className={cn("translate transform overflow-hidden", {
-                          hidden: !open,
-                        })}
-                      >
-                        <ul className="mt-4 mb-5.5 flex flex-col gap-2.5 pl-6">
-                          <li>
-                            <NavLink
-                              to="/admin/ui/buttons"
-                              end
-                              className={({ isActive }) =>
-                                cn(
-                                  "text-muted-foreground hover:text-accent group relative flex items-center gap-2.5 rounded-md px-4 font-medium duration-300 ease-in-out",
-                                  { "text-accent!": isActive },
-                                )
-                              }
-                            >
-                              Buttons
-                            </NavLink>
-                          </li>
-                        </ul>
-                      </div>
-                      {/* <!-- Dropdown Menu End --> */}
-                    </React.Fragment>
-                  );
-                }}
-              </SidebarLinkGroup>
-              {/* <!-- Menu Item Ui Elements --> */}
+                        )
+                      }
+                    >
+                      <Icon />
+                      {t(item.labelKey)}
+                    </NavLink>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         </nav>
-        {/* <!-- Sidebar Menu --> */}
       </div>
     </aside>
   );

@@ -1,5 +1,6 @@
 import { ResetPasswordForm } from "wasp/client/auth";
 import { Link as WaspRouterLink, routes } from "wasp/client/router";
+import { Trans } from "react-i18next";
 import { AuthPageLayout } from "../AuthPageLayout";
 
 export function PasswordResetPage() {
@@ -8,8 +9,12 @@ export function PasswordResetPage() {
       <ResetPasswordForm />
       <br />
       <span className="text-sm font-medium text-gray-900">
-        If everything is okay,{" "}
-        <WaspRouterLink to={routes.LoginRoute.to}>go to login</WaspRouterLink>
+        <Trans
+          i18nKey="auth.passwordReset.allOkay"
+          components={{
+            loginLink: <WaspRouterLink to={routes.LoginRoute.to} />,
+          }}
+        />
       </span>
     </AuthPageLayout>
   );

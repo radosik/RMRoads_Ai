@@ -1,5 +1,6 @@
 import { BarChart3, Radar, Shield, Workflow } from "lucide-react";
 import { useState, type FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { Link as WaspRouterLink, routes } from "wasp/client/router";
 import { submitRMRoadsPilotLead } from "wasp/client/operations";
 import { Button } from "../client/components/ui/button";
@@ -18,25 +19,11 @@ const initialForm = {
   pilotGoal: "",
 };
 
-const benefits = [
-  {
-    icon: Radar,
-    title: "Live network mirroring",
-    text: "Import historical or active shipment data to simulate your operational risk without changing live systems.",
-  },
-  {
-    icon: BarChart3,
-    title: "Vulnerability mapping",
-    text: "Identify lanes, ports, carriers, and customers where manual response windows close too quickly.",
-  },
-  {
-    icon: Workflow,
-    title: "Planner approval workflow",
-    text: "Compare recovery scenarios and keep every approve, defer, or reject decision in an audit trail.",
-  },
-];
+const benefitIcons = [Radar, BarChart3, Workflow] as const;
+const benefitIds = ["network", "vulnerability", "approval"] as const;
 
 export default function RMRoadsPilotPage() {
+  const { t } = useTranslation();
   const [form, setForm] = useState(initialForm);
   const [status, setStatus] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,7 +41,7 @@ export default function RMRoadsPilotPage() {
       setStatus(result.message);
       setForm(initialForm);
     } catch (error: any) {
-      setStatus(error.message || "Could not submit the pilot request.");
+      setStatus(error.message || t("pilot.submitFailed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -67,40 +54,51 @@ export default function RMRoadsPilotPage() {
         <div className="min-w-0">
           <div className="rmr-label flex items-center gap-2 text-secondary">
             <span className="size-2 rounded-full bg-secondary rmr-glow" />
-            Priority intake
+            {t("pilot.eyebrow")}
           </div>
           <h1 className="mt-5 max-w-3xl text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-[3.7rem] lg:leading-[1.04]">
-            Disruption Audit & Pilot Program
+            {t("pilot.title")}
           </h1>
           <p className="mt-6 max-w-2xl text-base leading-7 text-muted-foreground">
-            Deploy RMRoads AI in your network for a 30-45 day controlled audit.
-            Uncover hidden vulnerabilities, map recurring disruption vectors,
-            and quantify the financial impact of missed recovery windows.
+            {t("pilot.intro")}
           </p>
 
           <div className="mt-8 grid max-w-2xl grid-cols-1 gap-3 sm:grid-cols-2">
-            <AuditMetric label="At-Risk Shipments Protected" value="14.2%" detail="Average identified in baseline audits" />
-            <AuditMetric label="Protected Value" value="$2.4M" detail="Modeled annualized exposure per pilot" />
+            <AuditMetric
+              label={t("pilot.metrics.protected.label")}
+              value={t("pilot.metrics.protected.value")}
+              detail={t("pilot.metrics.protected.detail")}
+            />
+            <AuditMetric
+              label={t("pilot.metrics.value.label")}
+              value={t("pilot.metrics.value.value")}
+              detail={t("pilot.metrics.value.detail")}
+            />
           </div>
 
           <div className="mt-10 grid gap-5 border-l border-border/50 pl-5">
-            {benefits.map((benefit) => (
-              <div className="flex gap-4" key={benefit.title}>
-                <benefit.icon className="mt-1 size-5 shrink-0 text-muted-foreground" />
-                <div>
-                  <h2 className="text-lg font-semibold">{benefit.title}</h2>
-                  <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{benefit.text}</p>
+            {benefitIds.map((id, index) => {
+              const Icon = benefitIcons[index];
+              return (
+                <div className="flex gap-4" key={id}>
+                  <Icon className="mt-1 size-5 shrink-0 text-muted-foreground" />
+                  <div>
+                    <h2 className="text-lg font-semibold">{t(`pilot.benefits.${id}.title`)}</h2>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+                      {t(`pilot.benefits.${id}.text`)}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="mt-10 flex flex-wrap gap-3">
             <Button className="rmr-label rounded bg-secondary text-secondary-foreground hover:bg-secondary-muted" asChild>
-              <WaspRouterLink to={routes.RMRoadsDashboardRoute.to}>Open Workspace</WaspRouterLink>
+              <WaspRouterLink to={routes.RMRoadsDashboardRoute.to}>{t("pilot.openWorkspace")}</WaspRouterLink>
             </Button>
             <Button className="rmr-label rounded" variant="outline" asChild>
-              <WaspRouterLink to={routes.LandingPageRoute.to}>Back to Home</WaspRouterLink>
+              <WaspRouterLink to={routes.LandingPageRoute.to}>{t("pilot.backHome")}</WaspRouterLink>
             </Button>
           </div>
         </div>
@@ -108,34 +106,53 @@ export default function RMRoadsPilotPage() {
         <div className="rmr-panel relative min-w-0 overflow-hidden p-6">
           <div className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-secondary to-accent" />
           <div className="mb-6">
-            <h2 className="text-xl font-semibold">Request Audit Configuration</h2>
+            <h2 className="text-xl font-semibold">{t("pilot.form.title")}</h2>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Complete the parameters below to initiate the pilot provisioning
-              workflow.
+              {t("pilot.form.subtitle")}
             </p>
           </div>
           <form className="grid gap-4" onSubmit={handleSubmit}>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Name" value={form.name} onChange={(value) => updateField("name", value)} />
-              <Field label="Work Email" type="email" value={form.workEmail} onChange={(value) => updateField("workEmail", value)} />
+              <Field label={t("pilot.form.fields.name")} value={form.name} onChange={(value) => updateField("name", value)} />
+              <Field label={t("pilot.form.fields.workEmail")} type="email" value={form.workEmail} onChange={(value) => updateField("workEmail", value)} />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Company" value={form.company} onChange={(value) => updateField("company", value)} />
-              <Field label="Role" value={form.role} onChange={(value) => updateField("role", value)} />
+              <Field label={t("pilot.form.fields.company")} value={form.company} onChange={(value) => updateField("company", value)} />
+              <Field label={t("pilot.form.fields.role")} value={form.role} onChange={(value) => updateField("role", value)} />
             </div>
-            <Field label="Monthly Shipment Volume" value={form.shipmentVolume} onChange={(value) => updateField("shipmentVolume", value)} placeholder="Example: 8,000 shipments/month" />
-            <Field label="Current TMS / Tools" value={form.currentTools} onChange={(value) => updateField("currentTools", value)} placeholder="SAP, Manhattan, Oracle, spreadsheets..." />
-            <TextAreaField label="Primary Disruption Pain Point" value={form.disruptionPain} onChange={(value) => updateField("disruptionPain", value)} placeholder="Describe late detection, manual escalation, customer penalties, expedited freight, or planner workload." />
-            <TextAreaField label="Primary Goal for Audit" value={form.pilotGoal} onChange={(value) => updateField("pilotGoal", value)} placeholder="What specific KPI or workflow should the pilot improve?" />
+            <Field
+              label={t("pilot.form.fields.shipmentVolume")}
+              value={form.shipmentVolume}
+              onChange={(value) => updateField("shipmentVolume", value)}
+              placeholder={t("pilot.form.fields.shipmentVolumePlaceholder")}
+            />
+            <Field
+              label={t("pilot.form.fields.currentTools")}
+              value={form.currentTools}
+              onChange={(value) => updateField("currentTools", value)}
+              placeholder={t("pilot.form.fields.currentToolsPlaceholder")}
+            />
+            <TextAreaField
+              label={t("pilot.form.fields.disruptionPain")}
+              value={form.disruptionPain}
+              onChange={(value) => updateField("disruptionPain", value)}
+              placeholder={t("pilot.form.fields.disruptionPainPlaceholder")}
+            />
+            <TextAreaField
+              label={t("pilot.form.fields.pilotGoal")}
+              value={form.pilotGoal}
+              onChange={(value) => updateField("pilotGoal", value)}
+              placeholder={t("pilot.form.fields.pilotGoalPlaceholder")}
+            />
             {status ? (
               <p className="rounded border border-secondary/40 bg-secondary/10 p-3 text-sm font-semibold text-secondary">
                 {status}
               </p>
             ) : null}
             <Button className="rmr-label h-11 rounded bg-secondary text-secondary-foreground hover:bg-secondary-muted" disabled={isSubmitting} type="submit">
-              {isSubmitting ? "Submitting..." : "Submit Audit Request"}
+              {isSubmitting ? t("pilot.form.submitting") : t("pilot.form.submit")}
             </Button>
-            <p className="text-center text-xs text-muted-foreground">Data is used only to qualify the pilot workflow.</p>
+            <p className="text-center text-xs text-muted-foreground">{t("pilot.form.dataNote")}</p>
           </form>
         </div>
       </section>

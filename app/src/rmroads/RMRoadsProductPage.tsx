@@ -88,46 +88,17 @@ function useScrollReveal() {
   }, []);
 }
 
-const workflow = [
-  {
-    icon: FileSpreadsheet,
-    title: "Import active shipments",
-    text: "Start with a CSV from the team’s current process. No carrier or ERP integration is required for the first pilot.",
-  },
-  {
-    icon: Radar,
-    title: "Detect disruption exposure",
-    text: "Match shipments against manual disruption signals such as port congestion, carrier issues, weather, and customs delays.",
-  },
-  {
-    icon: AlertTriangle,
-    title: "Rank exception priority",
-    text: "Bring high-value, high-priority shipments to the top with risk explanations planners can review quickly.",
-  },
-  {
-    icon: Route,
-    title: "Compare response scenarios",
-    text: "Evaluate wait, notify, reroute, split, and expedite options with cost, ETA, customer risk, and complexity.",
-  },
-  {
-    icon: ClipboardCheck,
-    title: "Approve the action",
-    text: "Keep the human in control. Every approve, defer, or reject decision is stored with notes for the audit trail.",
-  },
-  {
-    icon: History,
-    title: "Review pilot value",
-    text: "Export weekly summaries showing reviewed decisions, protected shipment value, top risks, and alert delivery health.",
-  },
-];
+const workflowSteps = [
+  { icon: FileSpreadsheet, id: "import" },
+  { icon: Radar, id: "detect" },
+  { icon: AlertTriangle, id: "rank" },
+  { icon: Route, id: "compare" },
+  { icon: ClipboardCheck, id: "approve" },
+  { icon: History, id: "review" },
+] as const;
 
-const scenarioRows = [
-  ["Wait", "No direct cost", "+1-2 days", "High"],
-  ["Notify", "Low", "No recovery", "Medium"],
-  ["Reroute", "Medium", "Save 1 day", "Medium"],
-  ["Split", "Medium", "Protect partial demand", "Low"],
-  ["Expedite", "High", "Fastest recovery", "Low"],
-];
+const scenarioRowIds = ["wait", "notify", "reroute", "split", "expedite"] as const;
+const controlCardIds = ["approval", "scoring", "tenant"] as const;
 
 export default function RMRoadsProductPage() {
   useScrollReveal();
@@ -231,7 +202,7 @@ function ProblemSection() {
         <div className="mt-12 grid gap-4 md:grid-cols-3">
           {problems.map((p) => (
             <div className="rmr-reveal rmr-panel min-w-0 p-6 transition-[transform,border-color] duration-200 hover:-translate-y-0.5 hover:border-secondary/40" key={p.label}>
-              <div className="flex items-baseline gap-1">
+              <div className="flex flex-wrap items-baseline gap-x-1 gap-y-1">
                 <span
                   className="text-5xl font-bold tracking-tight text-foreground tabular-nums"
                   data-rmr-counter={p.value}
@@ -241,7 +212,7 @@ function ProblemSection() {
                 {p.suffix ? (
                   <span className="text-5xl font-bold tracking-tight text-foreground">{p.suffix}</span>
                 ) : null}
-                <span className="rmr-label ml-2 text-muted-foreground">{p.unit}</span>
+                <span className="rmr-label ml-2 break-words text-muted-foreground">{p.unit}</span>
               </div>
               <div className="mt-4 text-sm font-semibold text-foreground">{p.label}</div>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">{p.detail}</p>
@@ -254,26 +225,27 @@ function ProblemSection() {
 }
 
 function Workflow() {
+  const { t } = useTranslation();
   return (
     <section className="rmr-reveal-section border-b border-border/30 px-4 py-16 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <div className="max-w-2xl">
-          <h2 className="rmr-reveal text-2xl font-semibold sm:text-3xl">A narrow pilot workflow that proves value fast.</h2>
+          <h2 className="rmr-reveal text-2xl font-semibold sm:text-3xl">{t("landing.workflow.title")}</h2>
           <p className="rmr-reveal mt-4 text-sm leading-6 text-muted-foreground">
-            The MVP focuses on decisions before automation: find exposed shipments, recommend a response, and store the approval trail.
+            {t("landing.workflow.subtitle")}
           </p>
         </div>
         <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {workflow.map((item, index) => (
-            <div className="rmr-reveal rmr-panel min-w-0 p-5 transition-[transform,border-color] duration-200 hover:-translate-y-0.5 hover:border-secondary/40" key={item.title}>
+          {workflowSteps.map((item, index) => (
+            <div className="rmr-reveal rmr-panel min-w-0 p-5 transition-[transform,border-color] duration-200 hover:-translate-y-0.5 hover:border-secondary/40" key={item.id}>
               <div className="mb-5 flex items-center justify-between">
                 <div className="flex size-10 items-center justify-center rounded border border-secondary/30 bg-secondary/10 text-secondary">
                   <item.icon className="size-5" />
                 </div>
                 <span className="rmr-data text-muted-foreground">0{index + 1}</span>
               </div>
-              <h3 className="text-lg font-semibold">{item.title}</h3>
-              <p className="mt-3 text-sm leading-6 text-muted-foreground">{item.text}</p>
+              <h3 className="text-lg font-semibold">{t(`landing.workflow.steps.${item.id}.title`)}</h3>
+              <p className="mt-3 text-sm leading-6 text-muted-foreground">{t(`landing.workflow.steps.${item.id}.text`)}</p>
             </div>
           ))}
         </div>
@@ -283,36 +255,38 @@ function Workflow() {
 }
 
 function WorkbenchPreview() {
+  const { t } = useTranslation();
+  const exceptionRows = [
+    { id: "SHP-1001", customer: "Northstar Retail", lane: "Veracruz → Atlanta", reasonKey: "portCongestion", value: "$185k", risk: "95" },
+    { id: "SHP-1002", customer: "Atlas Medical", lane: "Shanghai → Long Beach", reasonKey: "carrierDelay", value: "$98k", risk: "84" },
+    { id: "SHP-1003", customer: "Foundry Parts", lane: "Hamburg → Chicago", reasonKey: "customsHold", value: "$72k", risk: "78" },
+  ];
   return (
     <section className="rmr-reveal-section border-b border-border/30 px-4 py-16 sm:px-6 lg:px-8">
       <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
         <div className="rmr-reveal rmr-panel overflow-hidden">
           <div className="border-b border-border/30 bg-card-subtle/70 px-4 py-3">
             <div className="rmr-label flex items-center gap-2 text-secondary">
-              <Database className="size-4" /> Exception queue
+              <Database className="size-4" /> {t("landing.preview.exceptionQueue")}
             </div>
           </div>
           <div className="grid grid-cols-12 gap-2 border-b border-border/30 px-4 py-3 text-[11px] font-bold uppercase text-muted-foreground">
-            <div className="col-span-3">Shipment</div>
-            <div className="col-span-3">Lane</div>
-            <div className="col-span-3">Risk reason</div>
-            <div className="col-span-2 text-right">Value</div>
-            <div className="col-span-1 text-right">Risk</div>
+            <div className="col-span-3">{t("landing.preview.cols.shipment")}</div>
+            <div className="col-span-3">{t("landing.preview.cols.lane")}</div>
+            <div className="col-span-3">{t("landing.preview.cols.riskReason")}</div>
+            <div className="col-span-2 text-right">{t("landing.preview.cols.value")}</div>
+            <div className="col-span-1 text-right">{t("landing.preview.cols.risk")}</div>
           </div>
-          {[
-            ["Northstar Retail", "SHP-1001", "Veracruz -> Atlanta", "Port congestion", "$185k", "95"],
-            ["Atlas Medical", "SHP-1002", "Shanghai -> Long Beach", "Carrier delay", "$98k", "84"],
-            ["Foundry Parts", "SHP-1003", "Hamburg -> Chicago", "Customs hold", "$72k", "78"],
-          ].map((row, index) => (
-            <div className={index === 0 ? "grid grid-cols-12 gap-2 border-b border-destructive/30 bg-destructive/10 px-4 py-4" : "grid grid-cols-12 gap-2 border-b border-border/20 px-4 py-4"} key={row[1]}>
+          {exceptionRows.map((row, index) => (
+            <div className={index === 0 ? "grid grid-cols-12 gap-2 border-b border-destructive/30 bg-destructive/10 px-4 py-4" : "grid grid-cols-12 gap-2 border-b border-border/20 px-4 py-4"} key={row.id}>
               <div className="col-span-3 min-w-0">
-                <div className="truncate text-sm font-semibold">{row[0]}</div>
-                <div className="rmr-data truncate text-muted-foreground">{row[1]}</div>
+                <div className="truncate text-sm font-semibold">{row.customer}</div>
+                <div className="rmr-data truncate text-muted-foreground">{row.id}</div>
               </div>
-              <div className="rmr-data col-span-3 min-w-0 truncate text-muted-foreground">{row[2]}</div>
-              <div className="col-span-3 min-w-0 truncate text-sm">{row[3]}</div>
-              <div className="rmr-data col-span-2 text-right">{row[4]}</div>
-              <div className={index === 0 ? "rmr-data col-span-1 text-right text-destructive" : "rmr-data col-span-1 text-right text-secondary"}>{row[5]}</div>
+              <div className="rmr-data col-span-3 min-w-0 truncate text-muted-foreground">{row.lane}</div>
+              <div className="col-span-3 min-w-0 truncate text-sm">{t(`landing.preview.reasons.${row.reasonKey}`)}</div>
+              <div className="rmr-data col-span-2 text-right">{row.value}</div>
+              <div className={index === 0 ? "rmr-data col-span-1 text-right text-destructive" : "rmr-data col-span-1 text-right text-secondary"}>{row.risk}</div>
             </div>
           ))}
         </div>
@@ -320,30 +294,33 @@ function WorkbenchPreview() {
         <div className="rmr-reveal grid gap-4">
           <div className="rmr-panel p-5">
             <div className="rmr-label mb-3 flex items-center gap-2 text-secondary">
-              <Truck className="size-4" /> Shipment detail
+              <Truck className="size-4" /> {t("landing.preview.shipmentDetail")}
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <Metric label="Customer" value="Northstar Retail" />
-              <Metric label="Carrier" value="Maersk" />
-              <Metric label="ETA" value="2026-06-02" />
-              <Metric label="Value" value="$185k" />
+              <Metric label={t("landing.preview.detail.customer")} value="Northstar Retail" />
+              <Metric label={t("landing.preview.detail.carrier")} value="Maersk" />
+              <Metric label={t("landing.preview.detail.eta")} value="2026-06-02" />
+              <Metric label={t("landing.preview.detail.value")} value="$185k" />
             </div>
           </div>
           <div className="rmr-panel overflow-hidden">
             <div className="border-b border-border/30 px-5 py-4">
               <div className="rmr-label flex items-center gap-2 text-secondary">
-                <Network className="size-4" /> Scenario comparison
+                <Network className="size-4" /> {t("landing.preview.scenarioComparison")}
               </div>
             </div>
             <div className="grid grid-cols-4 gap-2 px-5 py-3 text-[11px] font-bold uppercase text-muted-foreground">
-              <div>Action</div>
-              <div>Cost</div>
-              <div>ETA</div>
-              <div>Customer risk</div>
+              <div>{t("landing.preview.scenarioCols.action")}</div>
+              <div>{t("landing.preview.scenarioCols.cost")}</div>
+              <div>{t("landing.preview.scenarioCols.eta")}</div>
+              <div>{t("landing.preview.scenarioCols.customerRisk")}</div>
             </div>
-            {scenarioRows.map((row) => (
-              <div className={row[0] === "Expedite" ? "grid grid-cols-4 gap-2 border-t border-secondary/30 bg-secondary/10 px-5 py-3 text-sm" : "grid grid-cols-4 gap-2 border-t border-border/20 px-5 py-3 text-sm"} key={row[0]}>
-                {row.map((cell) => <div className="min-w-0 truncate" key={cell}>{cell}</div>)}
+            {scenarioRowIds.map((id) => (
+              <div className={id === "expedite" ? "grid grid-cols-4 gap-2 border-t border-secondary/30 bg-secondary/10 px-5 py-3 text-sm" : "grid grid-cols-4 gap-2 border-t border-border/20 px-5 py-3 text-sm"} key={id}>
+                <div className="min-w-0 truncate">{t(`landing.preview.scenarios.${id}.action`)}</div>
+                <div className="min-w-0 truncate">{t(`landing.preview.scenarios.${id}.cost`)}</div>
+                <div className="min-w-0 truncate">{t(`landing.preview.scenarios.${id}.eta`)}</div>
+                <div className="min-w-0 truncate">{t(`landing.preview.scenarios.${id}.customerRisk`)}</div>
               </div>
             ))}
           </div>
@@ -354,18 +331,15 @@ function WorkbenchPreview() {
 }
 
 function ControlLayer() {
+  const { t } = useTranslation();
   return (
     <section className="rmr-reveal-section border-b border-border/30 px-4 py-16 sm:px-6 lg:px-8">
       <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-3">
-        {[
-          ["Human approval", "Recommendations are decision support. The planner approves, defers, or rejects every action."],
-          ["Explainable scoring", "Risk reasons stay visible beside the recommendation so the team can challenge bad assumptions."],
-          ["Tenant-scoped data", "Workspace data is tied to the organization, with admin-only settings and pre-pilot access review."],
-        ].map(([title, text]) => (
-          <div className="rmr-reveal rmr-panel p-6 transition-[transform,border-color] duration-200 hover:-translate-y-0.5 hover:border-secondary/40" key={title}>
+        {controlCardIds.map((id) => (
+          <div className="rmr-reveal rmr-panel p-6 transition-[transform,border-color] duration-200 hover:-translate-y-0.5 hover:border-secondary/40" key={id}>
             <ShieldCheck className="mb-5 size-9 text-secondary" />
-            <h3 className="text-lg font-semibold">{title}</h3>
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">{text}</p>
+            <h3 className="text-lg font-semibold">{t(`landing.controlLayer.${id}.title`)}</h3>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">{t(`landing.controlLayer.${id}.text`)}</p>
           </div>
         ))}
       </div>

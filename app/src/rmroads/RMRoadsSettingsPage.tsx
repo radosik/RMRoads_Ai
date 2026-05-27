@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { Link as WaspRouterLink, routes } from "wasp/client/router";
 import {
   cancelRMRoadsWorkspaceInvitation,
@@ -37,6 +38,7 @@ const defaultForm = {
 };
 
 export default function RMRoadsSettingsPage() {
+  const { t, i18n } = useTranslation();
   const settingsQuery = useQuery(getRMRoadsWorkspaceSettings);
   const settings = settingsQuery.data;
   const [form, setForm] = useState(defaultForm);
@@ -72,9 +74,9 @@ export default function RMRoadsSettingsPage() {
     try {
       await updateRMRoadsWorkspaceSettings(form);
       await settingsQuery.refetch();
-      setMessage("Workspace settings saved.");
+      setMessage(t("settings.messages.saved"));
     } catch (error: any) {
-      setMessage(error.message || "Could not save workspace settings.");
+      setMessage(error.message || t("settings.messages.saveFailed"));
     } finally {
       setIsSaving(false);
     }
@@ -90,9 +92,9 @@ export default function RMRoadsSettingsPage() {
       setInviteEmail("");
       setInviteRole("planner");
       await settingsQuery.refetch();
-      setInviteMessage("Invitation saved.");
+      setInviteMessage(t("settings.messages.inviteSaved"));
     } catch (error: any) {
-      setInviteMessage(error.message || "Could not create invitation.");
+      setInviteMessage(error.message || t("settings.messages.inviteFailed"));
     } finally {
       setIsInviting(false);
     }
@@ -103,9 +105,9 @@ export default function RMRoadsSettingsPage() {
     try {
       await cancelRMRoadsWorkspaceInvitation({ invitationId });
       await settingsQuery.refetch();
-      setInviteMessage("Invitation cancelled.");
+      setInviteMessage(t("settings.messages.inviteCancelled"));
     } catch (error: any) {
-      setInviteMessage(error.message || "Could not cancel invitation.");
+      setInviteMessage(error.message || t("settings.messages.inviteCancelFailed"));
     }
   }
 
@@ -116,39 +118,41 @@ export default function RMRoadsSettingsPage() {
     try {
       await resendRMRoadsWorkspaceInvitation({ invitationId });
       await settingsQuery.refetch();
-      setInviteMessage("Invitation email resent.");
+      setInviteMessage(t("settings.messages.inviteResent"));
     } catch (error: any) {
-      setInviteMessage(error.message || "Could not resend invitation email.");
+      setInviteMessage(error.message || t("settings.messages.inviteResendFailed"));
     } finally {
       setResendingInvitationId("");
     }
   }
+
+  const localeForDate = i18n.language || "en";
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-background px-4 py-8 text-foreground sm:px-6 lg:px-8">
       <div className="mx-auto grid max-w-6xl gap-6">
         <header className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
           <div>
-            <p className="rmr-label text-secondary">Workspace readiness</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight">RMRoads Settings</h1>
+            <p className="rmr-label text-secondary">{t("settings.eyebrow")}</p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight">{t("settings.title")}</h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
-              Configure the organization, pilot target, alert recipients, invitations, and readiness controls before importing real pilot data.
+              {t("settings.intro")}
             </p>
           </div>
           <Button asChild variant="outline">
-            <WaspRouterLink to={routes.RMRoadsDashboardRoute.to}>Back to Workspace</WaspRouterLink>
+            <WaspRouterLink to={routes.RMRoadsDashboardRoute.to}>{t("settings.backToWorkspace")}</WaspRouterLink>
           </Button>
         </header>
 
         {settingsQuery.isLoading ? (
           <Card>
-            <CardContent className="p-6 text-sm text-muted-foreground">Loading workspace settings...</CardContent>
+            <CardContent className="p-6 text-sm text-muted-foreground">{t("settings.loading")}</CardContent>
           </Card>
         ) : null}
 
         {settingsQuery.error ? (
           <Card>
-            <CardContent className="p-6 text-sm font-semibold text-destructive">Could not load workspace settings.</CardContent>
+            <CardContent className="p-6 text-sm font-semibold text-destructive">{t("settings.loadError")}</CardContent>
           </Card>
         ) : null}
 
@@ -157,11 +161,11 @@ export default function RMRoadsSettingsPage() {
             <div className="grid gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Organization</CardTitle>
+                  <CardTitle>{t("settings.organization.title")}</CardTitle>
                 </CardHeader>
                 <CardContent className="grid gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="workspace-name">Workspace name</Label>
+                    <Label htmlFor="workspace-name">{t("settings.organization.workspaceName")}</Label>
                     <Input
                       id="workspace-name"
                       value={form.name}
@@ -169,7 +173,7 @@ export default function RMRoadsSettingsPage() {
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label>Workspace slug</Label>
+                    <Label>{t("settings.organization.workspaceSlug")}</Label>
                     <Input disabled value={settings.organization.slug} />
                   </div>
                 </CardContent>
@@ -177,24 +181,24 @@ export default function RMRoadsSettingsPage() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Pilot Configuration</CardTitle>
+                  <CardTitle>{t("settings.pilot.title")}</CardTitle>
                 </CardHeader>
                 <CardContent className="grid gap-4">
                   <div className="grid gap-2">
-                    <Label>Pilot mode</Label>
+                    <Label>{t("settings.pilot.mode")}</Label>
                     <Select value={form.pilotMode} onValueChange={(value) => setForm((current) => ({ ...current, pilotMode: value as PilotMode }))}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="demo">Demo workspace</SelectItem>
-                        <SelectItem value="paid_pilot">Paid pilot</SelectItem>
-                        <SelectItem value="production_readiness">Production readiness</SelectItem>
+                        <SelectItem value="demo">{t("settings.pilot.modes.demo")}</SelectItem>
+                        <SelectItem value="paid_pilot">{t("settings.pilot.modes.paid_pilot")}</SelectItem>
+                        <SelectItem value="production_readiness">{t("settings.pilot.modes.production_readiness")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="pilot-target">Target decision time, hours</Label>
+                    <Label htmlFor="pilot-target">{t("settings.pilot.targetDecisionHours")}</Label>
                     <Input
                       id="pilot-target"
                       min={1}
@@ -210,7 +214,7 @@ export default function RMRoadsSettingsPage() {
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="pilot-metric">Pilot success metric</Label>
+                    <Label htmlFor="pilot-metric">{t("settings.pilot.successMetric")}</Label>
                     <Textarea
                       id="pilot-metric"
                       value={form.pilotSuccessMetric}
@@ -222,14 +226,14 @@ export default function RMRoadsSettingsPage() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Critical Alerts</CardTitle>
+                  <CardTitle>{t("settings.alerts.title")}</CardTitle>
                 </CardHeader>
                 <CardContent className="grid gap-4">
                   <label className="flex items-center justify-between gap-4 rounded border border-border bg-card-subtle p-4">
                     <span>
-                      <span className="block text-sm font-semibold">Enable critical email alerts</span>
+                      <span className="block text-sm font-semibold">{t("settings.alerts.toggleTitle")}</span>
                       <span className="mt-1 block text-xs leading-5 text-muted-foreground">
-                        Alerts are sent only for critical exceptions after recipients are configured.
+                        {t("settings.alerts.toggleHelp")}
                       </span>
                     </span>
                     <Switch
@@ -238,10 +242,10 @@ export default function RMRoadsSettingsPage() {
                     />
                   </label>
                   <div className="grid gap-2">
-                    <Label htmlFor="alert-recipients">Alert recipients</Label>
+                    <Label htmlFor="alert-recipients">{t("settings.alerts.recipients")}</Label>
                     <Textarea
                       id="alert-recipients"
-                      placeholder="ops@example.com, logistics@example.com"
+                      placeholder={t("settings.alerts.recipientsPlaceholder")}
                       value={form.alertRecipients}
                       onChange={(event) => setForm((current) => ({ ...current, alertRecipients: event.currentTarget.value }))}
                     />
@@ -251,14 +255,14 @@ export default function RMRoadsSettingsPage() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Weekly Pilot Summary</CardTitle>
+                  <CardTitle>{t("settings.weekly.title")}</CardTitle>
                 </CardHeader>
                 <CardContent className="grid gap-4">
                   <label className="flex items-center justify-between gap-4 rounded border border-border bg-card-subtle p-4">
                     <span>
-                      <span className="block text-sm font-semibold">Enable weekly summary emails</span>
+                      <span className="block text-sm font-semibold">{t("settings.weekly.toggleTitle")}</span>
                       <span className="mt-1 block text-xs leading-5 text-muted-foreground">
-                        Send a Monday pilot summary with imports, top risks, decisions, value, and alert delivery health.
+                        {t("settings.weekly.toggleHelp")}
                       </span>
                     </span>
                     <Switch
@@ -267,16 +271,18 @@ export default function RMRoadsSettingsPage() {
                     />
                   </label>
                   <div className="grid gap-2">
-                    <Label htmlFor="weekly-summary-recipients">Summary recipients</Label>
+                    <Label htmlFor="weekly-summary-recipients">{t("settings.weekly.recipients")}</Label>
                     <Textarea
                       id="weekly-summary-recipients"
-                      placeholder="ops@example.com, leadership@example.com"
+                      placeholder={t("settings.weekly.recipientsPlaceholder")}
                       value={form.weeklySummaryRecipients}
                       onChange={(event) => setForm((current) => ({ ...current, weeklySummaryRecipients: event.currentTarget.value }))}
                     />
                     <p className="text-xs leading-5 text-muted-foreground">
-                      Last status: {formatRole(settings.organization.weeklySummaryEmailStatus)}
-                      {settings.organization.weeklySummaryLastSentAt ? ` · Last sent ${formatDate(settings.organization.weeklySummaryLastSentAt)}` : ""}
+                      {t("settings.weekly.lastStatus", { status: formatRoleLabel(t, settings.organization.weeklySummaryEmailStatus) })}
+                      {settings.organization.weeklySummaryLastSentAt
+                        ? ` · ${t("settings.weekly.lastSent", { date: formatDate(settings.organization.weeklySummaryLastSentAt, localeForDate) })}`
+                        : ""}
                     </p>
                   </div>
                 </CardContent>
@@ -286,57 +292,59 @@ export default function RMRoadsSettingsPage() {
             <aside className="grid content-start gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Team Members</CardTitle>
+                  <CardTitle>{t("settings.team.title")}</CardTitle>
                 </CardHeader>
                 <CardContent className="grid gap-3">
                   {settings.members.map((member) => (
                     <div className="rounded border border-border bg-card-subtle p-3" key={member.id}>
-                      <div className="text-sm font-semibold">{member.email || member.username || "Workspace member"}</div>
-                      <div className="mt-1 text-xs text-muted-foreground">{formatRole(member.role)} · Added {formatDate(member.createdAt)}</div>
+                      <div className="text-sm font-semibold">{member.email || member.username || t("settings.team.memberFallback")}</div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {formatRoleLabel(t, member.role)} · {t("settings.team.added", { date: formatDate(member.createdAt, localeForDate) })}
+                      </div>
                     </div>
                   ))}
                   <form className="grid gap-3 rounded border border-border bg-card-subtle p-3" onSubmit={handleInvitationSubmit}>
                     <div>
-                      <div className="text-sm font-semibold">Invite teammate</div>
+                      <div className="text-sm font-semibold">{t("settings.team.inviteTitle")}</div>
                       <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                        Track pilot invites here. Account acceptance can stay high-touch until the first paid pilot requires self-serve onboarding.
+                        {t("settings.team.inviteHelp")}
                       </p>
                     </div>
                     <Input
-                      aria-label="Invite email"
-                      placeholder="teammate@example.com"
+                      aria-label={t("settings.team.inviteEmailLabel")}
+                      placeholder={t("settings.team.inviteEmailPlaceholder")}
                       type="email"
                       value={inviteEmail}
                       onChange={(event) => setInviteEmail(event.currentTarget.value)}
                     />
                     <Select value={inviteRole} onValueChange={(value) => setInviteRole(value as "admin" | "planner" | "viewer")}>
-                      <SelectTrigger aria-label="Invitation role">
+                      <SelectTrigger aria-label={t("settings.team.inviteRoleLabel")}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="planner">Planner</SelectItem>
-                        <SelectItem value="viewer">Viewer</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="planner">{t("settings.roles.planner")}</SelectItem>
+                        <SelectItem value="viewer">{t("settings.roles.viewer")}</SelectItem>
+                        <SelectItem value="admin">{t("settings.roles.admin")}</SelectItem>
                       </SelectContent>
                     </Select>
                     <Button disabled={isInviting} type="submit">
-                      {isInviting ? "Saving..." : "Create Invitation"}
+                      {isInviting ? t("settings.team.saving") : t("settings.team.createInvitation")}
                     </Button>
                     {inviteMessage ? <p className="text-xs font-semibold text-secondary">{inviteMessage}</p> : null}
                   </form>
                   <div className="grid gap-2">
-                    <div className="text-sm font-semibold">Invitations</div>
+                    <div className="text-sm font-semibold">{t("settings.team.invitations")}</div>
                     {settings.invitations.map((invitation) => (
                       <div className="rounded border border-border bg-background p-3" key={invitation.id}>
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className="break-words text-sm font-semibold">{invitation.email}</div>
                             <div className="mt-1 text-xs text-muted-foreground">
-                              {formatRole(invitation.role)} · {formatRole(invitation.status)} · Sent {formatDate(invitation.createdAt)}
+                              {formatRoleLabel(t, invitation.role)} · {formatRoleLabel(t, invitation.status)} · {t("settings.team.sent", { date: formatDate(invitation.createdAt, localeForDate) })}
                             </div>
                             <div className="mt-1 text-xs text-muted-foreground">
-                              Email {formatRole(invitation.inviteEmailStatus)}
-                              {invitation.inviteEmailSentAt ? ` · ${formatDate(invitation.inviteEmailSentAt)}` : ""}
+                              {t("settings.team.emailStatus", { status: formatRoleLabel(t, invitation.inviteEmailStatus) })}
+                              {invitation.inviteEmailSentAt ? ` · ${formatDate(invitation.inviteEmailSentAt, localeForDate)}` : ""}
                             </div>
                           </div>
                           {invitation.status === "pending" ? (
@@ -348,7 +356,7 @@ export default function RMRoadsSettingsPage() {
                                 type="button"
                                 variant="outline"
                               >
-                                {resendingInvitationId === invitation.id ? "Sending..." : "Resend"}
+                                {resendingInvitationId === invitation.id ? t("settings.team.sending") : t("settings.team.resend")}
                               </Button>
                               <Button
                                 onClick={() => handleCancelInvitation(invitation.id)}
@@ -356,7 +364,7 @@ export default function RMRoadsSettingsPage() {
                                 type="button"
                                 variant="outline"
                               >
-                                Cancel
+                                {t("settings.team.cancel")}
                               </Button>
                             </div>
                           ) : null}
@@ -365,7 +373,7 @@ export default function RMRoadsSettingsPage() {
                     ))}
                     {!settings.invitations.length ? (
                       <p className="rounded border border-dashed border-border p-3 text-xs leading-5 text-muted-foreground">
-                        No invitations yet. Operational contact: {settings.manualInviteEmail}
+                        {t("settings.team.noInvitations", { email: settings.manualInviteEmail })}
                       </p>
                     ) : null}
                   </div>
@@ -374,14 +382,14 @@ export default function RMRoadsSettingsPage() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Pre-Pilot Readiness</CardTitle>
+                  <CardTitle>{t("settings.readiness.title")}</CardTitle>
                 </CardHeader>
                 <CardContent className="grid gap-4">
                   <label className="flex items-start justify-between gap-4 rounded border border-border bg-card-subtle p-4">
                     <span>
-                      <span className="block text-sm font-semibold">Tenant security review completed</span>
+                      <span className="block text-sm font-semibold">{t("settings.readiness.toggleTitle")}</span>
                       <span className="mt-1 block text-xs leading-5 text-muted-foreground">
-                        Use this only after tenant-scoped actions and data import handling have been reviewed.
+                        {t("settings.readiness.toggleHelp")}
                       </span>
                     </span>
                     <Switch
@@ -391,7 +399,7 @@ export default function RMRoadsSettingsPage() {
                   </label>
                   {message ? <p className="text-sm font-semibold text-secondary">{message}</p> : null}
                   <Button disabled={isSaving} type="submit">
-                    {isSaving ? "Saving..." : "Save Workspace Settings"}
+                    {isSaving ? t("settings.readiness.saving") : t("settings.readiness.save")}
                   </Button>
                 </CardContent>
               </Card>
@@ -403,14 +411,18 @@ export default function RMRoadsSettingsPage() {
   );
 }
 
-function formatRole(role: string) {
-  return role.charAt(0).toUpperCase() + role.slice(1);
+function formatRoleLabel(t: (key: string, opts?: any) => string, value: string): string {
+  if (!value) return "";
+  const key = `settings.statuses.${value}`;
+  const translated = t(key);
+  if (translated && translated !== key) return translated;
+  return value.charAt(0).toUpperCase() + value.slice(1).replace(/_/g, " ");
 }
 
-function formatDate(value: string) {
+function formatDate(value: string, locale: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat(locale, {
     month: "short",
     day: "numeric",
     year: "numeric",
